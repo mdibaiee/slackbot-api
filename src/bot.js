@@ -54,6 +54,9 @@ export default class Bot extends EventEmitter {
 
         ws.on('message', message => {
           let msg = JSON.parse(message);
+          let methods = messageMethods(this, msg);
+
+          msg = Object.assign(msg, methods);
 
           this.emit('raw_message', msg);
           this.emit(msg.type, msg);
@@ -166,6 +169,24 @@ export default class Bot extends EventEmitter {
       channel: target.id, ts: timestamp,
       text, ...params
     })
+  }
+
+  /**
+   * Random helper which returns one of the provided arguments randomly
+   * @param  {Mixed/Array} args a set of arguments which can contain flat arrays
+   * @return {Mixed}
+   */
+  random(...args) {
+    let options = args.reduce((a, b) => {
+      return a.concat(b);
+    }, []);
+
+    let chance = 1 / (options.length - 1);
+
+    let luck = +Math.random().toFixed(1);
+    let index = Math.round(luck / chance);
+
+    return options[index];
   }
 
   /**
@@ -285,5 +306,20 @@ export default class Bot extends EventEmitter {
         }
 
     return 'NAME';
+  }
+}
+
+/**
+ * A set of methods which are set on message objects before emitting events.
+ * These methods are simpler forms of bot methods which prefill the message
+ * parameters
+ * @param  {Bot}    bot bot instance, used as context when binding functions
+ * @param  {Object} msg message object, used to prefill the methods
+ * @return {Object}
+ */
+function messageMethods(bot, msg) {
+  return {
+    reply: bot.sendMessage.bind(bot, msg.channel),
+    react: bot.react.bind(bot, msg.channel, msg.ts || msg.timestamp)
   }
 }
