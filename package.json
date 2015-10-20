@@ -27,7 +27,6 @@
   },
   "homepage": "https://github.com/mdibaiee/",
   "dependencies": {
-    "socket.io": "1.3.7",
     "unirest": "0.4.2",
     "ws": "0.8.0"
   },
