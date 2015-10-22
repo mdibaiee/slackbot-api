@@ -123,6 +123,7 @@ export default class Bot extends EventEmitter {
 
     this.on('message', message => {
       if (reg.test(message.text)) {
+        message.match = reg.exec(message.text);
         Modifiers.trigger('listen', Object.assign({}, message, opts)).then(() => {
           fn(message);
         })
