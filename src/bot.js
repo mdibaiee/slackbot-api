@@ -18,14 +18,12 @@ export default class Bot extends EventEmitter {
    * Takes a config object passed to `rtm.start`,
    * see https://api.slack.com/methods/rtm.start
    *
-   * @param  {String} name    bot's name
    * @param  {object} config
    */
-  constructor(name, config) {
+  constructor(config) {
     super();
 
     this.config = config;
-    this.name = name;
 
     // Send a request for Real-time Messaging API
     let options = querystring.stringify(config);
@@ -110,10 +108,12 @@ export default class Bot extends EventEmitter {
    */
   @processable('listen')
   listen(regex, listener, params) {
+    const NAME = new RegExp(this.self.name, 'i');
+
     let fn, reg, opts;
     if (typeof regex === 'function') {
       fn = regex;
-      reg = new RegExp(this.name, 'i');
+      reg = NAME;
       opts = listener || {};
     } else {
       reg = regex;
@@ -122,9 +122,10 @@ export default class Bot extends EventEmitter {
     }
 
     this.on('message', message => {
-      let name = new RegExp(this.name, 'i');
-      if (opts.mention && !name.test(message.text)) {
-        return;
+      if (opts.mention &&
+         // check for bot's name or bot's id (actual mentioning, e.g. @botname)
+         (!NAME.test(message.text) && !message.text.includes(this.self.id))) {
+        return
       }
 
       if (reg.test(message.text)) {
