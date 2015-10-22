@@ -114,14 +114,19 @@ export default class Bot extends EventEmitter {
     if (typeof regex === 'function') {
       fn = regex;
       reg = new RegExp(this.name, 'i');
-      opts = listener;
+      opts = listener || {};
     } else {
       reg = regex;
       fn = listener;
-      opts = params;
+      opts = params || {};
     }
 
     this.on('message', message => {
+      let name = new RegExp(this.name, 'i');
+      if (opts.mention && !name.test(message.text)) {
+        return;
+      }
+
       if (reg.test(message.text)) {
         message.match = reg.exec(message.text);
         Modifiers.trigger('listen', Object.assign({}, message, opts)).then(() => {
