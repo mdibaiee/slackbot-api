@@ -5,6 +5,9 @@ import https from 'https';
 import querystring from 'querystring';
 import unirest from 'unirest';
 
+import modifiers from './modifiers';
+import pocket from './pocket';
+
 const API = 'https://slack.com/api/';
 const START_URI = 'https://slack.com/api/rtm.start';
 
@@ -30,11 +33,15 @@ export default class Bot extends EventEmitter {
     .headers({'Accept': 'application/json'})
     .end(response => {
       let data = response.body;
+
       this.connect(data.url);
       delete data.ok;
       delete data.url;
       Object.assign(this, data);
-    })
+    });
+
+    this.modifiers = modifiers;
+    this.pocket = pocket;
   }
 
   /**
@@ -103,15 +110,20 @@ export default class Bot extends EventEmitter {
    */
   @processable('listen')
   listen(regex, listener, params) {
-    let fn, reg;
+    let fn, reg, opts;
     if (typeof regex === 'function') {
       fn = regex;
       reg = new RegExp(this.name, 'i');
+      opts = listener;
+    } else {
+      reg = regex;
+      fn = listener;
+      opts = params;
     }
 
     this.on('message', message => {
       if (reg.test(message.text)) {
-        Modifiers.trigger('listen', Object.assign({}, message, params)).then(() => {
+        Modifiers.trigger('listen', Object.assign({}, message, opts)).then(() => {
           fn(message);
         })
       }
