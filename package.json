@@ -1,6 +1,6 @@
 {
   "name": "sbot",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Simple, consistent and customizable Slack bot API",
   "main": "src/index.js",
   "scripts": {
