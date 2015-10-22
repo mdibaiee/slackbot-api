@@ -1,4 +1,4 @@
-import { filterable } from './filters';
+import Modifiers, { processable } from './modifiers';
 import EventEmitter from 'events';
 import WebSocket from 'ws';
 import https from 'https';
@@ -42,7 +42,7 @@ export default class Bot extends EventEmitter {
    * @param  {String} url slack bot's API url e.g. wss://xyz
    * @return {Promise}    A promise which resolves upon `open`
    */
-  @filterable('connect')
+  @processable('connect')
   connect(url) {
     this.ws = new WebSocket(url);
     let ws = this.ws;
@@ -71,7 +71,7 @@ export default class Bot extends EventEmitter {
    * @return {Object}      channel, group, im, user or the bot
    *                                matching the specified name or id
    */
-  @filterable('find')
+  @processable('find')
   find(name) {
     if (this.type(name) === 'ID')
       return this.all().find(item => item.id === name);
@@ -83,7 +83,7 @@ export default class Bot extends EventEmitter {
    * Return an array containing all users, channels, groups, IMs and bots
    * @return {Array}
    */
-  @filterable('all')
+  @processable('all')
   all() {
     return this.users
           .concat(this.groups)
@@ -98,10 +98,11 @@ export default class Bot extends EventEmitter {
    * @param  {RegExp}   regex    regular expression to match messages against
    *                          	   default: /bolt/i
    * @param  {Function} listener the listener, invoked upon a matching message
+   * @param  {Object}   params
    * @return {Bot}                Returns the bot itself
    */
-  @filterable('listen')
-  listen(regex, listener) {
+  @processable('listen')
+  listen(regex, listener, params) {
     let fn, reg;
     if (typeof regex === 'function') {
       fn = regex;
@@ -109,7 +110,11 @@ export default class Bot extends EventEmitter {
     }
 
     this.on('message', message => {
-      if (reg.test(message.text)) fn(message);
+      if (reg.test(message.text)) {
+        Modifiers.trigger('listen', Object.assign({}, message, params)).then(() => {
+          fn(message);
+        })
+      }
     })
 
     return this;
@@ -124,31 +129,40 @@ export default class Bot extends EventEmitter {
    * @return {Promise}        A promise which resolves upon succes and fails
    *                             in case of errors
    */
-  @filterable('sendMessage')
+  @processable('sendMessage')
   sendMessage(channel, text, params) {
     let options = {...this.globals, ...params};
     let target = this.find(channel);
 
-    return this.call('message', {
+    let msg = {
       channel: target.id,
       text, ...options
-    }, true)
+    };
+
+    return Modifiers.trigger('sendMessage', msg, params).then(() => {
+      return this.call('message', msg, true);
+    });
   }
 
   /**
    * Deletes a message
    * @param  {String} channel   the channel which the message was sent to
    * @param  {Number} timestamp timestamp of the message
+   * @param  {Object} params
    * @return {Promise}          A promise which resolves upon succes and fails
    *                             in case of errors
    */
-  @filterable('deleteMessage')
-  deleteMessage(channel, timestamp) {
+  @processable('deleteMessage')
+  deleteMessage(channel, timestamp, params) {
     let target = this.find(channel);
 
-    return this.call('chat.delete', {
+    let msg = {
       channel: target.id, ts: timestamp
-    })
+    };
+
+    return Modifiers.trigger('deleteMessage', msg, params).then(() => {
+      return this.call('chat.delete', msg);
+    });
   }
 
 
@@ -161,14 +175,18 @@ export default class Bot extends EventEmitter {
    * @return {Promise}          A promise which resolves upon succes and fails
    *                             in case of errors
    */
-  @filterable('updateMessage')
+  @processable('updateMessage')
   updateMessage(channel, timestamp, text, params) {
     let target = this.find(channel);
 
-    return this.call('chat.update', {
+    let msg = {
       channel: target.id, ts: timestamp,
       text, ...params
-    })
+    };
+
+    return Modifiers.trigger('updateMessage', msg, params).then(() => {
+      return this.call('chat.update', msg);
+    });
   }
 
   /**
@@ -176,6 +194,7 @@ export default class Bot extends EventEmitter {
    * @param  {Mixed/Array} args a set of arguments which can contain flat arrays
    * @return {Mixed}
    */
+  @processable('random')
   random(...args) {
     let options = args.reduce((a, b) => {
       return a.concat(b);
@@ -194,7 +213,7 @@ export default class Bot extends EventEmitter {
    * @return {Promise} A promise which resolves upon succes and fails
    *                             in case of errors
    */
-  @filterable('emojis')
+  @processable('emojis')
   emojis() {
     return this.call('emoji.list');
   }
@@ -206,7 +225,7 @@ export default class Bot extends EventEmitter {
    *                       Pass a falsy value to delete the property
    * @return {Bot}         Returns the bot itself
    */
-  @filterable('icon')
+  @processable('icon')
   icon(icon) {
     if (!icon) {
       delete this.globals.icon_emoji;
@@ -231,13 +250,19 @@ export default class Bot extends EventEmitter {
    * @param  {Object} params    extra parameters
    * @return {Promise}
    */
-  @filterable('react')
+  @processable('react')
   react(channel, timestamp, emoji, params) {
     let target = this.find(channel);
 
-    return this.call('reactions.add', {
-      channel: target.id, timestamp, name: emoji, ...params
-    })
+    let msg = {
+      channel: target.id,
+      timestamp, name: emoji, ...params
+    };
+
+    let ok = Modifiers.trigger('react', msg, params);
+
+    if (ok) return this.call('reactions.add', msg);
+    return false;
   }
 
   /**
@@ -248,7 +273,7 @@ export default class Bot extends EventEmitter {
    * @return {Promise}            A promise which resolves upon success and fails
    *                               in case of errors
    */
-  @filterable('call')
+  @processable('call')
   call(method, params = {}, websocket = false) {
     if (websocket) {
       this.ws.send(JSON.stringify({
@@ -278,7 +303,7 @@ export default class Bot extends EventEmitter {
    * @param  {Number} id message id
    * @return {Promise}
    */
-  @filterable('waitForReply')
+  @processable('waitForReply')
   waitForReply(id) {
     return new Promise((resolve, reject) => {
       this.on('raw_message', message => {
@@ -297,7 +322,7 @@ export default class Bot extends EventEmitter {
    * @param  {String} string
    * @return {String}        returns 'ID' in case of an id and otherwise 'NAME'
    */
-  @filterable('type')
+  @processable('type')
   type(string) {
     const STARTINGS = ['U', 'C', 'G'];
     if (string.toUpperCase() === string && string[1] === '0' &&

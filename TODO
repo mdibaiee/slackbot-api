@@ -1,5 +1,4 @@
 - [x] Random
 - [x] Reply to messages ( easier API )
-- [] Error handling
-- [] Storage
-- [] Middlewares / Improve Filters
+- [x] Storage
+- [x] Middlewares / Improve modifiers

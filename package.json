@@ -20,13 +20,15 @@
     "src"
   ],
   "directories": {
-    "lib": "lib"
+    "lib": "src"
   },
   "engines": {
     "node": ">=0.12.0"
   },
   "homepage": "https://github.com/mdibaiee/",
   "dependencies": {
+    "bluebird": "2.10.2",
+    "redis": "2.2.5",
     "unirest": "0.4.2",
     "ws": "0.8.0"
   },
