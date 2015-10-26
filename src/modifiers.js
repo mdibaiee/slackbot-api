@@ -104,6 +104,21 @@ export default {
    */
   remove(name, index) {
     modifiers[name].splice(index, 1);
+  },
+
+  /**
+   * Clears all modifiers
+   */
+  clear() {
+    modifiers = {};
+  },
+
+  /**
+   * Returns the modifiers object
+   * @return {Object} modifiers object
+   */
+  modifiers() {
+    return modifiers;
   }
 }
 

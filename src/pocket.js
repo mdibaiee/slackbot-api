@@ -11,6 +11,7 @@ bluebird.promisifyAll(redis.Multi.prototype);
 
 let client = redis.createClient();
 
+/* istanbul ignore next */
 client.on('error', err => {
   console.error('Redis Error:', err);
 });

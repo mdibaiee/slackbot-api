@@ -1,63 +1,276 @@
 import 'mocha';
 import chai from 'chai';
 import Bot from '../src/bot';
-import config from '../src/config'
-import Tester from './tester';
+import sinon from 'sinon';
+import WebSocket from 'ws';
+import express from 'express';
+
 chai.should();
 
-const DELAY = 100;
+const DELAY = 10;
 const LONG_DELAY = 10000;
 
-const GROUP = 'test-bolt';
+const GROUP = 'test-bot';
+const GROUPID = 'G0123123';
+const NAME = 'test';
+
+let ws = new WebSocket.Server({ port: 9090 });
+let app = express();
+app.listen(9091);
 
 describe('Bot', function() {
   this.timeout(LONG_DELAY);
   let bot;
 
   beforeEach(() => {
-    bot = new Bot(config);
+    bot = new Bot({}, true);
+    Object.assign(bot, {
+      channels: [], users: [], ims: [], bots: [],
+      groups: [{
+        name: GROUP,
+        id: GROUPID
+      }],
+      self: {
+        name: NAME
+      }
+    });
+
+    ws._events = {};
+
+    bot.connect('ws://127.0.0.1:9090');
+    bot._api = 'http://127.0.0.1:9091/';
   })
 
   describe('constructor', () => {
-    it('should extend from SlackBot', () => {
-      bot.should.have.property('postMessageToChannel');
+    it('should connect to websocket server', done => {
+      bot.on('raw_message', () => done());
+
+      ws.on('connection', socket => {
+        socket.send('{}');
+      });
     })
   })
 
-  describe('match', () => {
-    it('should match messages against regexp correctly', done => {
-      bot.match(/Testing@\d+/, message => {
-        message.text.should.equal('Testing@123');
+  describe('hear', () => {
+    it('should test messages against regexp correctly', done => {
+      let cb = sinon.spy();
+      bot.hear(/Testing@\d+/, cb);
+
+      setImmediate(() => {
+        cb.called.should.equal(true);
+
+        done();
+      })
+
+      let listener = bot._events.message;
+      listener({
+        text: 'Testing@123'
+      });
+    })
+
+    it('should match against bot name when first argument is omitted', done => {
+      let cb = sinon.spy();
+      bot.hear(cb);
+
+      setImmediate(() => {
+        cb.calledOnce.should.equal(true);
 
         done();
       });
 
-      Tester.postMessageToGroup(GROUP, 'Test@');
-      Tester.postMessageToGroup(GROUP, 'Testing@123');
+      let listener = bot._events.message;
+      listener({
+        text: 'ok'
+      });
+      listener({
+        text: NAME
+      })
+    })
+  })
+
+  describe('listen', () => {
+    it('should only match if the bot name is mentioned', done => {
+      let cb = sinon.spy();
+      bot.listen(/hi/, cb);
+
+      setImmediate(() => {
+        cb.calledOnce.should.equal(true);
+
+        done();
+      }, DELAY);
+
+      let listener = bot._events.message;
+      listener({
+        text: 'hi'
+      });
+      listener({
+        text: `hi ${NAME}`
+      });
     })
   })
 
   describe('icon', () => {
     it('should set emoji icon correctly', done => {
       bot.icon(':rocket:');
-      bot.sendMessage(GROUP, 'icon_emoji');
+      bot.globals.icon_emoji.should.equal(':rocket:');
 
-      Tester.on('message', message => {
-        if (message.icons && message.icons.emoji === ':rocket:') {
-          done();
-          bot.icon(false);
-        }
-      })
+      done();
+    });
+
+    it('should set url icon correctly', done => {
+      bot.icon('http://folan.com');
+      bot.globals.icon_url.should.equal('http://folan.com');
+
+      done();
+    })
+
+    it('should clear property in case of falsy input', done => {
+      bot.icon();
+      bot.globals.should.not.have.property('icon_url');
+      bot.globals.should.not.have.property('icon_emoji');
+
+      done();
     })
   })
 
   describe('sendMessage', () => {
     it('should send to group correctly', done => {
-      bot.sendMessage(GROUP, 'sendMessage-group');
+      bot.groups.push({
+      });
 
-      Tester.on('message', message => {
-        if (message.text === 'sendMessage-group') done();
+      ws.on('connection', socket => {
+        socket.on('message', message => {
+          let msg = JSON.parse(message);
+
+          msg.text.should.equal('sendMessage-group');
+          msg.channel.should.equal(GROUPID);
+          msg.type.should.equal('message');
+          done();
+        })
+      });
+
+      bot.on('open', () => {
+        bot.sendMessage(GROUP, 'sendMessage-group');
+      });
+    });
+
+    it('should catch server replies to that message', done => {
+      ws.on('connection', socket => {
+        let ok = true;
+
+        socket.on('message', message => {
+          let msg = JSON.parse(message);
+
+          let response = {
+            reply_to: msg.id,
+            ok
+          };
+
+          ok = !ok;
+
+          socket.send(JSON.stringify(response));
+        });
       })
+
+      bot.on('open', () => {
+        bot.sendMessage(GROUP, 'test').then(reply => {
+          reply.ok.should.equal(true);
+        });
+
+        bot.sendMessage(GROUP, 'test').then(() => {}, reply => {
+          reply.ok.should.equal(false);
+
+          done();
+        })
+      })
+    })
+  });
+
+  describe('random', () => {
+    it('should return a random item of inputs', done => {
+      bot.random('Hi', 'Hey', 'Ay').should.satisfy(result => {
+        return ['Hi', 'Hey', 'Ay'].indexOf(result) > -1;
+      });
+
+      done();
+    })
+  })
+
+  describe('emojis', () => {
+    it('should send request to API emoji.list', done => {
+      app.get('/emoji.list', () => {
+        done();
+      });
+
+      bot.emojis();
+    })
+  })
+
+  describe('react', () => {
+    it('should send request to API reactions.add', done => {
+      app.get('/reactions.add', request => {
+        request.query.channel.should.equal(GROUPID);
+        request.query.timestamp.should.equal('123123');
+        request.query.name.should.equal('rocket');
+        done();
+      });
+
+      bot.react(GROUP, 123123, 'rocket');
+    });
+  })
+
+
+  describe('updateMessage', () => {
+    it('should send request to API chat.update', done => {
+      app.get('/chat.update', request => {
+        request.query.channel.should.equal(GROUPID);
+        request.query.ts.should.equal('123123');
+        request.query.text.should.equal('newtext');
+        done();
+      });
+
+      bot.updateMessage(GROUP, 123123, 'newtext');
+    });
+  })
+
+  describe('deleteMessage', () => {
+    it('should send request to API chat.delete', done => {
+      app.get('/chat.delete', request => {
+        request.query.channel.should.equal(GROUPID);
+        request.query.ts.should.equal('123123');
+        done();
+      });
+
+      bot.deleteMessage(GROUP, 123123);
+    });
+  })
+
+  describe('all', () => {
+    it('should return concated lists of channels, groups, users, ...', done => {
+      let all = bot.all();
+
+      all.should.have.length(1);
+      all.should.have.members([bot.groups[0]]);
+
+      done();
+    })
+  })
+
+  describe('find', () => {
+    it('should find using name or id', done => {
+      bot.find(GROUP).should.equal(bot.groups[0]);
+      bot.find(GROUPID).should.equal(bot.groups[0]);
+
+      done();
+    });
+  })
+
+  describe('type', () => {
+    it('should detect name/id', done => {
+      bot.type(GROUP).should.equal('NAME');
+      bot.type(GROUPID).should.equal('ID');
+
+      done();
     })
   })
 })

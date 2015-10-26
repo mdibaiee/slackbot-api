@@ -18,28 +18,37 @@ export default class Bot extends EventEmitter {
    * Takes a config object passed to `rtm.start`,
    * see https://api.slack.com/methods/rtm.start
    *
-   * @param  {object} config
+   * @param  {object}  config
+   * @param  {boolean} manual  doesn't request websocket url and `.connect`
+   *                           automatically
    */
-  constructor(config) {
+  constructor(config, manual) {
     super();
 
     this.config = config;
 
-    // Send a request for Real-time Messaging API
-    let options = querystring.stringify(config);
-    unirest.get(START_URI + '?' + options)
-    .headers({'Accept': 'application/json'})
-    .end(response => {
-      let data = response.body;
-
-      this.connect(data.url);
-      delete data.ok;
-      delete data.url;
-      Object.assign(this, data);
-    });
-
     this.modifiers = modifiers;
     this.pocket = pocket;
+
+    this.globals = {};
+
+    /* istanbul ignore else */
+    if (manual) {
+      return;
+    } else {
+      // Send a request and fetch Real-time Messaging API's websocket server
+      let options = querystring.stringify(config);
+      unirest.get(START_URI + '?' + options)
+      .headers({'Accept': 'application/json'})
+      .end(response => {
+        let data = response.body;
+
+        this.connect(data.url);
+        delete data.ok;
+        delete data.url;
+        Object.assign(this, data);
+      });
+    }
   }
 
   /**
@@ -99,15 +108,15 @@ export default class Bot extends EventEmitter {
 
   /**
    * Listens on incoming messages matching a regular expression or
-   * messages calling the bot name
-   * @param  {RegExp}   regex    regular expression to match messages against
+   * messages calling the bot name if no regex is provided
+   * @param  {regexp}   regex    regular expression to match messages against
    *                          	   default: /bolt/i
-   * @param  {Function} listener the listener, invoked upon a matching message
-   * @param  {Object}   params
-   * @return {Bot}                Returns the bot itself
+   * @param  {function} listener the listener, invoked upon a matching message
+   * @param  {object}   params
+   * @return {bot}                returns the bot itself
    */
   @processable('listen')
-  listen(regex, listener, params) {
+  hear(regex, listener, params = {}) {
     const NAME = new RegExp(this.self.name, 'i');
 
     let fn, reg, opts;
@@ -118,7 +127,7 @@ export default class Bot extends EventEmitter {
     } else {
       reg = regex;
       fn = listener;
-      opts = params || {};
+      opts = params;
     }
 
     this.on('message', message => {
@@ -140,6 +149,20 @@ export default class Bot extends EventEmitter {
   }
 
   /**
+   * Listens on incoming messages mentioning the bot, messages are matched only
+   * if the message contains bot's name
+   * @param  {regexp}   regex    regular expression to match messages against
+   *                          	   default: /bolt/i
+   * @param  {function} listener the listener, invoked upon a matching message
+   * @param  {object}   params
+   * @return {bot}                returns the bot itself
+   */
+  listen(regex, listener, params = {}) {
+    params.mention = true;
+    return this.hear(regex, listener, params);
+  }
+
+  /**
    * Send a message to IM | Channel | Group
    * @param  {string} channel The channel, im or group to send the message to
    * @param  {string} text    Message's text content
@@ -149,7 +172,7 @@ export default class Bot extends EventEmitter {
    *                             in case of errors
    */
   @processable('sendMessage')
-  sendMessage(channel, text, params) {
+  sendMessage(channel, text, params = {}) {
     let options = {...this.globals, ...params};
     let target = this.find(channel);
 
@@ -172,7 +195,7 @@ export default class Bot extends EventEmitter {
    *                             in case of errors
    */
   @processable('deleteMessage')
-  deleteMessage(channel, timestamp, params) {
+  deleteMessage(channel, timestamp, params = {}) {
     let target = this.find(channel);
 
     let msg = {
@@ -195,7 +218,7 @@ export default class Bot extends EventEmitter {
    *                             in case of errors
    */
   @processable('updateMessage')
-  updateMessage(channel, timestamp, text, params) {
+  updateMessage(channel, timestamp, text, params = {}) {
     let target = this.find(channel);
 
     let msg = {
@@ -249,6 +272,7 @@ export default class Bot extends EventEmitter {
     if (!icon) {
       delete this.globals.icon_emoji;
       delete this.globals.icon_url;
+      return;
     }
 
     if (/:\w+:/.test(icon)) {
@@ -270,7 +294,7 @@ export default class Bot extends EventEmitter {
    * @return {Promise}
    */
   @processable('react')
-  react(channel, timestamp, emoji, params) {
+  react(channel, timestamp, emoji, params = {}) {
     let target = this.find(channel);
 
     let msg = {
@@ -278,10 +302,9 @@ export default class Bot extends EventEmitter {
       timestamp, name: emoji, ...params
     };
 
-    let ok = Modifiers.trigger('react', msg, params);
-
-    if (ok) return this.call('reactions.add', msg);
-    return false;
+    return Modifiers.trigger('react', msg, params).then(() => {
+      return this.call('reactions.add', msg);
+    });
   }
 
   /**
@@ -304,14 +327,18 @@ export default class Bot extends EventEmitter {
       return this.waitForReply(id - 1);
     }
 
+    let api = this._api || API; // this.api is used in tests
+
     return new Promise((resolve, reject) => {
-     unirest.get(API + method)
+     unirest.get(api + method)
             .send(JSON.stringify(params))
             .headers({'Accept': 'application/json'})
             .query(params)
             .query({token: this.config.token})
             .end(response => {
+              /* istanbul ignore next */
               if (response.statusType === 1) resolve(response.body);
+              /* istanbul ignore next */
               else reject(response.body);
             })
     })
@@ -327,6 +354,7 @@ export default class Bot extends EventEmitter {
     return new Promise((resolve, reject) => {
       this.on('raw_message', message => {
         if (message.reply_to === id) {
+          /* istanbul ignore if */
           if (typeof message.ok == 'undefined') return resolve(message)
           if (message.ok) return resolve(message);
 
