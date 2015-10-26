@@ -37,6 +37,7 @@
   },
   "homepage": "https://github.com/mdibaiee/",
   "dependencies": {
+    "babel": "5.8.29",
     "bluebird": "2.10.2",
     "redis": "2.2.5",
     "unirest": "0.4.2",
