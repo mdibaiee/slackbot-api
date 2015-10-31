@@ -1,8 +1,8 @@
 {
   "name": "slackbot-api",
   "description": "Simple, consistent and customizable Slack bot API",
-  "version": "1.0.1",
-  "main": "src/index.js",
+  "version": "1.0.2",
+  "main": "build/index.js",
   "scripts": {
     "test": "mocha test --compilers js:babel/register -w",
     "test:single": "istanbul cover -x test _mocha -- test --compilers js:babel/register",
@@ -22,11 +22,11 @@
   },
   "config": {
     "ghooks": {
-      "pre-commit": "npm run test:single && npm run check-coverage"
+      "pre-commit": "grunt && npm run test:single && npm run check-coverage"
     }
   },
   "files": [
-    "src"
+    "build"
   ],
   "directories": {
     "lib": "src"
