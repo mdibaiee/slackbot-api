@@ -86,6 +86,16 @@ describe('Bot', function() {
         text: NAME
       })
     })
+
+    it('should not crash when message doesn\'t have text property', done => {
+      bot.hear(() => {});
+
+      let listener = bot._events.message;
+
+      listener.bind(bot, {}).should.not.throw();
+
+      done();
+    });
   })
 
   describe('listen', () => {

@@ -115,7 +115,7 @@ export default class Bot extends EventEmitter {
    * @param  {object}   params
    * @return {bot}                returns the bot itself
    */
-  @processable('listen')
+  @processable('hear')
   hear(regex, listener, params = {}) {
     const NAME = new RegExp(this.self.name, 'i');
 
@@ -131,13 +131,13 @@ export default class Bot extends EventEmitter {
     }
 
     this.on('message', message => {
-      if (opts.mention &&
+      if (opts.mention && message.text &&
          // check for bot's name or bot's id (actual mentioning, e.g. @botname)
          (!NAME.test(message.text) && !message.text.includes(this.self.id))) {
         return
       }
 
-      if (reg.test(message.text)) {
+      if (message.text && reg.test(message.text)) {
         message.match = reg.exec(message.text);
         Modifiers.trigger('listen', Object.assign({}, message, opts)).then(() => {
           fn(message);
@@ -157,6 +157,7 @@ export default class Bot extends EventEmitter {
    * @param  {object}   params
    * @return {bot}                returns the bot itself
    */
+  @processable('listen')
   listen(regex, listener, params = {}) {
     params.mention = true;
     return this.hear(regex, listener, params);
