@@ -194,6 +194,22 @@ describe('Bot', function() {
         })
       })
     })
+
+    it('should send message to multiple channels', done => {
+      let spy = sinon.spy();
+
+      ws.on('connection', socket => {
+        socket.on('message', spy);
+      });
+
+      bot.on('open', () => {
+        bot.sendMessage([GROUP, GROUP], 'Hey').then(() => {
+          spy.called.should.equal(2);
+
+          done();
+        });
+      })
+    })
   });
 
   describe('random', () => {

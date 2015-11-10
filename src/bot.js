@@ -4,16 +4,14 @@ import WebSocket from 'ws';
 import https from 'https';
 import querystring from 'querystring';
 import unirest from 'unirest';
-
 import modifiers from './modifiers';
-import pocket from './pocket';
 
 const API = 'https://slack.com/api/';
 const START_URI = 'https://slack.com/api/rtm.start';
 
 let id = 0;
 
-export default class Bot extends EventEmitter {
+class Bot extends EventEmitter {
   /**
    * Takes a config object passed to `rtm.start`,
    * see https://api.slack.com/methods/rtm.start
@@ -28,14 +26,11 @@ export default class Bot extends EventEmitter {
     this.config = config;
 
     this.modifiers = modifiers;
-    this.pocket = pocket;
 
     this.globals = {};
 
-    /* istanbul ignore else */
-    if (manual) {
-      return;
-    } else {
+    /* istanbul ignore if */
+    if (!manual) {
       // Send a request and fetch Real-time Messaging API's websocket server
       let options = querystring.stringify(config);
       unirest.get(START_URI + '?' + options)
@@ -131,10 +126,12 @@ export default class Bot extends EventEmitter {
     }
 
     this.on('message', message => {
-      if (opts.mention && message.text &&
+      // if channel name starts with D, it's a Direct message and
+      // doesn't require mentioning name explicitly
+      if (opts.mention && message.text && !message.channel.startsWith('D') &&
          // check for bot's name or bot's id (actual mentioning, e.g. @botname)
          (!NAME.test(message.text) && !message.text.includes(this.self.id))) {
-        return
+        return;
       }
 
       if (message.text && reg.test(message.text)) {
@@ -165,15 +162,21 @@ export default class Bot extends EventEmitter {
 
   /**
    * Send a message to IM | Channel | Group
-   * @param  {string} channel The channel, im or group to send the message to
-   * @param  {string} text    Message's text content
-   * @param  {object} params  Message's parameters
-   *                          see https://api.slack.com/methods/chat.postMessage
-   * @return {Promise}        A promise which resolves upon succes and fails
-   *                             in case of errors
+   * @param  {String|Array} channel The channel, im or group to send the message to
+   * @param  {String} text          Message's text content
+   * @param  {Object} params        Message's parameters
+   *                                see https://api.slack.com/methods/chat.postMessage
+   * @return {Promise}              A promise which resolves upon succes and fails
+   *                                in case of errors
    */
   @processable('sendMessage')
   sendMessage(channel, text, params = {}) {
+    if (Array.isArray(channel)) {
+      return Promise.all(channel.map(ch => {
+        return this.sendMessage(ch, text, params);
+      }));
+    }
+
     let options = {...this.globals, ...params};
     let target = this.find(channel);
 
@@ -372,7 +375,7 @@ export default class Bot extends EventEmitter {
    */
   @processable('type')
   type(string) {
-    const STARTINGS = ['U', 'C', 'G'];
+    const STARTINGS = ['U', 'C', 'G', 'D'];
     if (string.toUpperCase() === string && string[1] === '0' &&
         STARTINGS.indexOf(string[0]) > -1) {
           return 'ID'
@@ -381,6 +384,8 @@ export default class Bot extends EventEmitter {
     return 'NAME';
   }
 }
+
+export default Bot;
 
 /**
  * A set of methods which are set on message objects before emitting events.
