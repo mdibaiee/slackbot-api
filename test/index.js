@@ -12,6 +12,7 @@ const LONG_DELAY = 10000;
 
 const GROUP = 'test-bot';
 const GROUPID = 'G0123123';
+const DIRECTID = 'D0123123';
 const NAME = 'test';
 
 let ws = new WebSocket.Server({ port: 9090 });
@@ -25,7 +26,7 @@ describe('Bot', function() {
   beforeEach(() => {
     bot = new Bot({}, true);
     Object.assign(bot, {
-      channels: [], users: [], ims: [], bots: [],
+      channels: [], users: [], bots: [], ims: [],
       groups: [{
         name: GROUP,
         id: GROUPID
@@ -111,10 +112,29 @@ describe('Bot', function() {
 
       let listener = bot._events.message;
       listener({
-        text: 'hi'
+        text: 'hi',
+        channel: GROUPID
       });
       listener({
-        text: `hi ${NAME}`
+        text: `hi ${NAME}`,
+        channel: GROUPID
+      });
+    })
+
+    it('should not require mentioning bot name in case of IM', done => {
+      let cb = sinon.spy();
+      bot.listen(/hi/, cb);
+
+      setImmediate(() => {
+        cb.calledOnce.should.equal(true);
+
+        done();
+      }, DELAY);
+
+      let listener = bot._events.message;
+      listener({
+        text: 'hi',
+        channel: DIRECTID
       });
     })
   })
@@ -196,19 +216,28 @@ describe('Bot', function() {
     })
 
     it('should send message to multiple channels', done => {
-      let spy = sinon.spy();
+      let callCount = 0;
 
       ws.on('connection', socket => {
-        socket.on('message', spy);
+        socket.on('message', message => {
+          callCount++;
+          let msg = JSON.parse(message);
+
+          let response = {
+            reply_to: msg.id
+          }
+
+          socket.send(JSON.stringify(response));
+        });
       });
 
       bot.on('open', () => {
         bot.sendMessage([GROUP, GROUP], 'Hey').then(() => {
-          spy.called.should.equal(2);
+          callCount.should.equal(2);
 
           done();
         });
-      })
+      });
     })
   });
 
