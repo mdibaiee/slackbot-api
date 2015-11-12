@@ -65,27 +65,9 @@ describe('Bot', function() {
 
       let listener = bot._events.message;
       listener({
-        text: 'Testing@123'
+        text: 'Testing@123',
+        channel: GROUPID
       });
-    })
-
-    it('should match against bot name when first argument is omitted', done => {
-      let cb = sinon.spy();
-      bot.hear(cb);
-
-      setImmediate(() => {
-        cb.calledOnce.should.equal(true);
-
-        done();
-      });
-
-      let listener = bot._events.message;
-      listener({
-        text: 'ok'
-      });
-      listener({
-        text: NAME
-      })
     })
 
     it('should not crash when message doesn\'t have text property', done => {
@@ -137,6 +119,28 @@ describe('Bot', function() {
         channel: DIRECTID
       });
     })
+
+    it('should match against bot name when regex argument is omitted', done => {
+      let cb = sinon.spy();
+      bot.listen(cb);
+
+      setImmediate(() => {
+        cb.calledOnce.should.equal(true);
+
+        done();
+      });
+
+      let listener = bot._events.message;
+      listener({
+        text: 'ok',
+        channel: GROUPID
+      });
+      listener({
+        text: NAME,
+        channel: GROUPID
+      })
+    })
+
   })
 
   describe('icon', () => {

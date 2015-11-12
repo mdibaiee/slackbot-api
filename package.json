@@ -1,7 +1,7 @@
 {
   "name": "slackbot-api",
   "description": "Simple, consistent and customizable Slack bot API",
-  "version": "1.0.7",
+  "version": "1.1.0",
   "main": "build/index.js",
   "scripts": {
     "test": "mocha test --compilers js:babel/register,js:babel/polyfill -w",

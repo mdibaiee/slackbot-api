@@ -29,6 +29,8 @@ class Bot extends EventEmitter {
 
     this.globals = {};
 
+    this.listeners = [];
+
     /* istanbul ignore if */
     if (!manual) {
       // Send a request and fetch Real-time Messaging API's websocket server
@@ -44,6 +46,41 @@ class Bot extends EventEmitter {
         Object.assign(this, data);
       });
     }
+
+    this.on('message', message => {
+      const NAME = new RegExp('\\b' + this.self.name + '\\b', 'i');
+
+      let mention;
+
+      // if channel name starts with D, it's a Direct message and
+      // doesn't require mentioning name explicitly
+      if (message.text && !message.channel.startsWith('D') &&
+         // check for bot's name or bot's id (mentioning @botname)
+         (!NAME.test(message.text) && !message.text.includes(this.self.id))) {
+        mention = false;
+      } else {
+        mention = true;
+      }
+
+      for (let {listener, regex, params} of this.listeners) {
+        let { text } = message;
+
+        if (params.mention && !mention) {
+          continue;
+        } else if (text) {
+          // don't include bot name in regex test
+          text = text.replace(NAME, '').trim();
+        }
+
+        if (text && regex.test(text)) {
+          message.match = regex.exec(text);
+
+          Modifiers.trigger('hear', Object.assign({}, message, params)).then(() => {
+            return listener(message);
+          }).catch(console.error.bind(console));
+        }
+      }
+    });
   }
 
   /**
@@ -103,44 +140,14 @@ class Bot extends EventEmitter {
 
   /**
    * Listens on incoming messages matching a regular expression or
-   * messages calling the bot name if no regex is provided
    * @param  {regexp}   regex    regular expression to match messages against
-   *                          	   default: /bolt/i
    * @param  {function} listener the listener, invoked upon a matching message
    * @param  {object}   params
    * @return {bot}                returns the bot itself
    */
   @processable('hear')
   hear(regex, listener, params = {}) {
-    const NAME = new RegExp(this.self.name, 'i');
-
-    let fn, reg, opts;
-    if (typeof regex === 'function') {
-      fn = regex;
-      reg = NAME;
-      opts = listener || {};
-    } else {
-      reg = regex;
-      fn = listener;
-      opts = params;
-    }
-
-    this.on('message', message => {
-      // if channel name starts with D, it's a Direct message and
-      // doesn't require mentioning name explicitly
-      if (opts.mention && message.text && !message.channel.startsWith('D') &&
-         // check for bot's name or bot's id (actual mentioning, e.g. @botname)
-         (!NAME.test(message.text) && !message.text.includes(this.self.id))) {
-        return;
-      }
-
-      if (message.text && reg.test(message.text)) {
-        message.match = reg.exec(message.text);
-        Modifiers.trigger('listen', Object.assign({}, message, opts)).then(() => {
-          fn(message);
-        })
-      }
-    })
+    this.listeners.push({regex, listener, params});
 
     return this;
   }
@@ -148,8 +155,8 @@ class Bot extends EventEmitter {
   /**
    * Listens on incoming messages mentioning the bot, messages are matched only
    * if the message contains bot's name
-   * @param  {regexp}   regex    regular expression to match messages against
-   *                          	   default: /bolt/i
+   * @param  {regexp}   regex    optional: regular expression to match messages
+   *                             against. default: /./
    * @param  {function} listener the listener, invoked upon a matching message
    * @param  {object}   params
    * @return {bot}                returns the bot itself
@@ -157,6 +164,11 @@ class Bot extends EventEmitter {
   @processable('listen')
   listen(regex, listener, params = {}) {
     params.mention = true;
+
+    if (typeof regex === 'function') {
+      return this.hear(/./, regex, listener || {});
+    }
+
     return this.hear(regex, listener, params);
   }
 
@@ -356,8 +368,10 @@ class Bot extends EventEmitter {
   @processable('waitForReply')
   waitForReply(id) {
     return new Promise((resolve, reject) => {
-      this.on('raw_message', message => {
+      this.on('raw_message', function listener(message) {
         if (message.reply_to === id) {
+          this.removeListener('raw_message', listener);
+
           /* istanbul ignore if */
           if (typeof message.ok == 'undefined') return resolve(message)
           if (message.ok) return resolve(message);
