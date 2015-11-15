@@ -73,10 +73,11 @@ class Bot extends EventEmitter {
         }
 
         if (text && regex.test(text)) {
-          message.match = regex.exec(text);
+          let msg = { ...message };
+          msg.match = regex.exec(text);
 
-          Modifiers.trigger('hear', Object.assign({}, message, params)).then(() => {
-            return listener(message);
+          Modifiers.trigger('hear', Object.assign({}, msg, params)).then(() => {
+            return listener(msg);
           }).catch(console.error.bind(console));
         }
       }
