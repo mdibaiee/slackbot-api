@@ -242,6 +242,21 @@ describe('Bot', function() {
           done();
         });
       });
+    });
+
+    it('should send message to @usernames', done => {
+      ws.on('connection', socket => {
+        socket.on('message', message => {
+          let msg = JSON.parse(message);
+
+          msg.channel.should.equal('@test');
+          done();
+        });
+      });
+
+      bot.on('open', () => {
+        bot.sendMessage('@test', 'Hey');
+      })
     })
   });
 

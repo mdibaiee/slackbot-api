@@ -191,10 +191,10 @@ class Bot extends EventEmitter {
     }
 
     let options = {...this.globals, ...params};
-    let target = this.find(channel);
+    let target = channel[0] === '@' ? channel : this.find(channel).id;
 
     let msg = {
-      channel: target.id,
+      channel: target,
       text, ...options
     };
 
