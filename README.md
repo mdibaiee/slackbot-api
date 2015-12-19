@@ -100,3 +100,47 @@ let channel = bot.find('general');
 let group = bot.find('my-secret-group');
 let byId = bot.find('U0123456');
 ```
+
+
+#Modifiers
+In order to create advanced plugins/tasks, you might need to modify *behaviour* of a function, in order
+to do that, bolt provides you _modifiers_.
+
+There are three types of modifiers:
+
+###preprocess
+Used to modify arguments of a function:
+
+```javascript
+// Allow string patterns
+bot.modifiers.preprocess('listen', (pattern, fn) => {
+  if (typeof pattern === 'string') {
+    let regex = new RegExp(pattern);
+    return [regex, fn];
+  }
+
+  return [pattern, fn];
+});
+```
+
+###postprocess
+Used to modify return value of a function:
+
+```javascript
+bot.modifiers.postproess('listen', (bot) => {
+  return 'Hey, I\'m listen and I\'m returning this!');
+})
+```
+
+###middleware
+Used to decide whether a function's main action should be called or not:
+
+```javascript
+bot.modifiers.middleware('hear', context => {
+  // Our bot must be polite!
+  if (context.message.indexOf(BAD_WORD) > -1)
+    return Promise.reject();
+
+  return Promise.resolve();
+});
+```
