@@ -73,7 +73,7 @@ class Bot extends EventEmitter {
         }
 
         if (text && regex.test(text)) {
-          let msg = { ...message };
+          let msg = { ...message }; // clone
           msg.match = regex.exec(text);
 
           Modifiers.trigger('hear', {...msg, ...params}).then(() => {

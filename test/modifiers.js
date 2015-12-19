@@ -1,6 +1,7 @@
 import 'mocha';
 import chai from 'chai';
 import Modifiers, { processable } from '../src/modifiers';
+import sinon from 'sinon';
 chai.should();
 
 describe('Modifiers', () => {
@@ -69,11 +70,21 @@ describe('Modifiers', () => {
 
   describe('middleware', () => {
     it('should be able to break the chain', done => {
+      let success = sinon.spy();
+      let fail = sinon.spy();
+
       Modifiers.middleware('mid', () => {
         return Promise.reject();
       });
 
-      Testing.mid().catch(done);
+      Testing.mid().then(success, fail);
+
+      setImmediate(() => {
+        success.called.should.equal(false);
+        fail.called.should.equal(true);
+
+        done();
+      });
     });
 
     it('should execute middlewares in order', done => {
