@@ -76,7 +76,7 @@ class Bot extends EventEmitter {
           let msg = { ...message };
           msg.match = regex.exec(text);
 
-          Modifiers.trigger('hear', Object.assign({}, msg, params)).then(() => {
+          Modifiers.trigger('hear', {...msg, ...params}).then(() => {
             return listener(msg);
           }).catch(console.error.bind(console));
         }
@@ -198,7 +198,7 @@ class Bot extends EventEmitter {
       text, ...options
     };
 
-    return Modifiers.trigger('sendMessage', msg, params).then(() => {
+    return Modifiers.trigger('sendMessage', {...msg, ...params}).then(() => {
       return this.call('message', msg, true);
     });
   }
@@ -219,7 +219,7 @@ class Bot extends EventEmitter {
       channel: target.id, ts: timestamp
     };
 
-    return Modifiers.trigger('deleteMessage', msg, params).then(() => {
+    return Modifiers.trigger('deleteMessage', {...msg, ...params}).then(() => {
       return this.call('chat.delete', msg);
     });
   }
@@ -243,7 +243,7 @@ class Bot extends EventEmitter {
       text, ...params
     };
 
-    return Modifiers.trigger('updateMessage', msg, params).then(() => {
+    return Modifiers.trigger('updateMessage', {...msg, ...params}).then(() => {
       return this.call('chat.update', msg);
     });
   }
@@ -319,7 +319,7 @@ class Bot extends EventEmitter {
       timestamp, name: emoji, ...params
     };
 
-    return Modifiers.trigger('react', msg, params).then(() => {
+    return Modifiers.trigger('react', {...msg, ...params}).then(() => {
       return this.call('reactions.add', msg);
     });
   }

@@ -85,12 +85,12 @@ describe('Modifiers', () => {
       });
 
       Modifiers.middleware('mid', () => {
-        count++;
+        count = 0;
         return Promise.resolve();
       });
 
       Testing.mid().then(() => {
-        count.should.equal(2);
+        count.should.equal(0);
         done();
       })
     })
