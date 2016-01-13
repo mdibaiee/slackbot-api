@@ -4,6 +4,7 @@ import WebSocket from 'ws';
 import https from 'https';
 import querystring from 'querystring';
 import unirest from 'unirest';
+import { fold as foldToAscii } from 'fold-to-ascii';
 import modifiers from './modifiers';
 
 const API = 'https://slack.com/api/';
@@ -64,17 +65,23 @@ class Bot extends EventEmitter {
 
       for (let {listener, regex, params} of this.listeners) {
         let { text } = message;
+				let ascii;
 
         if (params.mention && !mention) {
           continue;
         } else if (text) {
           // don't include bot name in regex test
           text = text.replace(NAME, '').trim();
+
+				  ascii = foldToAscii(text);
         }
 
-        if (text && regex.test(text)) {
-          let msg = { ...message }; // clone
+        if ((text && regex.test(text)) || (ascii && regex.test(ascii))) {
+          let msg = { ...message, ascii }; // clone
           msg.match = regex.exec(text);
+					msg.asciiMatch = regex.exec(ascii);
+					if (msg.match) msg.match.splice(0, 1);
+					if (msg.asciiMatch) msg.asciiMatch.splice(0, 1);
 
           Modifiers.trigger('hear', {...msg, ...params}).then(() => {
             return listener(msg);
@@ -192,6 +199,8 @@ class Bot extends EventEmitter {
 
     let options = {...this.globals, ...params};
     let target = channel[0] === '@' ? channel : this.find(channel).id;
+
+		text = text.replace(/&/g, '&amp;').replace(/</, '&lt;').replace(/>/, '&gt;');
 
     let msg = {
       channel: target,
