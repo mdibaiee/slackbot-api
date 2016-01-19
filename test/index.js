@@ -14,6 +14,9 @@ const GROUP = 'test-bot';
 const GROUPID = 'G0123123';
 const DIRECTID = 'D0123123';
 const NAME = 'test';
+const USERNAME = 'user';
+const USERID = 'U123123';
+const IMID = 'I123123';
 
 let ws = new WebSocket.Server({ port: 9090 });
 let app = express();
@@ -26,7 +29,15 @@ describe('Bot', function() {
   beforeEach(() => {
     bot = new Bot({}, true);
     Object.assign(bot, {
-      channels: [], users: [], bots: [], ims: [],
+      channels: [], bots: [],
+      users: [{
+        name: USERNAME,
+        id: USERID
+      }],
+      ims: [{
+        id: IMID,
+        user: USERID
+      }],
       groups: [{
         name: GROUP,
         id: GROUPID
@@ -257,6 +268,29 @@ describe('Bot', function() {
       bot.on('open', () => {
         bot.sendMessage('@test', 'Hey');
       })
+    });
+
+    it('should send message to IMs when a username is provided', done => {
+      ws.on('connection', socket => {
+        socket.on('message', message => {
+          let msg = JSON.parse(message);
+
+          msg.channel.should.equal(IMID);
+          done();
+        });
+      });
+
+      bot.on('open', () => {
+        bot.sendMessage(USERNAME, 'Hey');
+      })
+    });
+
+    it('should throw error in case of unavailable channel', done => {
+      bot.on('open', () => {
+        bot.sendMessage.bind(bot, Math.random() + '', 'Hey').should.throw();
+
+        done();
+      })
     })
   });
 
@@ -323,8 +357,7 @@ describe('Bot', function() {
     it('should return concated lists of channels, groups, users, ...', done => {
       let all = bot.all();
 
-      all.should.have.length(1);
-      all.should.have.members([bot.groups[0]]);
+      all.should.have.length(bot.users.length + bot.ims.length + bot.groups.length);
 
       done();
     })

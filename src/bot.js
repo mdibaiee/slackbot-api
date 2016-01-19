@@ -198,7 +198,23 @@ class Bot extends EventEmitter {
     }
 
     let options = {...this.globals, ...params};
-    let target = channel[0] === '@' ? channel : this.find(channel).id;
+    let target;
+
+    // @username sends the message to the users' @slackbot channel
+    if (channel[0] === '@') target = channel;
+    else {
+      target = (this.find(channel) || {}).id;
+
+      // sending to users
+      if (target && target[0] === 'U') {
+        target = (this.ims.find(im => {
+          return im.user === target;
+        }) || {}).id;
+      }
+
+
+      if (!target) throw new Error('Could not find channel ' + channel);
+    }
 
 		text = text.replace(/&/g, '&amp;').replace(/</, '&lt;').replace(/>/, '&gt;');
 
