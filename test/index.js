@@ -16,7 +16,7 @@ const DIRECTID = 'D0123123';
 const NAME = 'test';
 const USERNAME = 'user';
 const USERID = 'U123123';
-const IMID = 'I123123';
+const IMID = 'D123123';
 
 let ws = new WebSocket.Server({ port: 9090 });
 let app = express();
@@ -180,9 +180,6 @@ describe('Bot', function() {
 
   describe('sendMessage', () => {
     it('should send to group correctly', done => {
-      bot.groups.push({
-      });
-
       ws.on('connection', socket => {
         socket.on('message', message => {
           let msg = JSON.parse(message);
@@ -198,6 +195,24 @@ describe('Bot', function() {
         bot.sendMessage(GROUP, 'sendMessage-group');
       });
     });
+
+    it('should not search for channel if an ID is provided', done => {
+      // an ID that doesn't exist in `bot.all()`
+      // if `sendMessage` tries to find the channel, it will throw an error
+      // else, our test will pass
+      const randomid = 'D0000';
+      ws.on('connection', socket => {
+        socket.on('message', message => {
+          let msg = JSON.parse(message);
+          msg.channel.should.equal(GROUPID);
+          done();
+        })
+      });
+
+      bot.on('open', () => {
+        bot.sendMessage(GROUPID, 'sendMessage-group');
+      });
+    })
 
     it('should catch server replies to that message', done => {
       ws.on('connection', socket => {

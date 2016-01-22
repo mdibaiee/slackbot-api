@@ -72,6 +72,7 @@ class Bot extends EventEmitter {
         } else if (text) {
           // don't include bot name in regex test
           text = text.replace(NAME, '').trim();
+          text = text.replace(/&gt;/g, '>').replace(/&lt;/g, '<');
 
 				  ascii = foldToAscii(text);
         }
@@ -202,6 +203,7 @@ class Bot extends EventEmitter {
 
     // @username sends the message to the users' @slackbot channel
     if (channel[0] === '@') target = channel;
+    else if (this.type(channel) === 'ID') target = channel;
     else {
       target = (this.find(channel) || {}).id;
 
