@@ -32,6 +32,8 @@ class Bot extends EventEmitter {
 
     this.listeners = [];
 
+    this.messageListeners = [];
+
     /* istanbul ignore if */
     if (!manual) {
       // Send a request and fetch Real-time Messaging API's websocket server
@@ -48,9 +50,27 @@ class Bot extends EventEmitter {
       });
     }
 
-    this.on('message', message => {
-      const NAME = new RegExp('\\b' + this.self.name + '\\b', 'i');
+    this.on('message_changed', message => {
+      let update = this.messageListeners
+      .filter(a => a.ts === message.ts && a.channel === message.channel)
+      .filter(a => a.event === 'update');
 
+      let newMessage = { ...message.message, channel: message.channel };
+      update.forEach(({listener}) => listener(newMessage));
+    });
+
+    this.on('message_deleted', message => {
+      let deleted = this.messageListeners
+      .filter(a => a.ts === message.ts && a.channel === message.channel)
+      .filter(a => a.event === 'delete');
+
+      deleted.forEach(({listener}) => listener(message));
+    })
+
+    this.on('message', message => {
+      if (message.subtype) return;
+
+      const NAME = new RegExp('\\b' + this.self.name + '\\b', 'i');
       let mention;
 
       // if channel name starts with D, it's a Direct message and
@@ -63,18 +83,20 @@ class Bot extends EventEmitter {
         mention = true;
       }
 
-      for (let {listener, regex, params} of this.listeners) {
-        let { text } = message;
-				let ascii;
+      let { text } = message;
+      let ascii;
 
+      if (!text) return;
+
+      // don't include bot name in regex test
+      text = text.replace(NAME, '').trim();
+      text = text.replace(/&gt;/g, '>').replace(/&lt;/g, '<');
+
+		  ascii = foldToAscii(text);
+
+      for (let {listener, regex, params} of this.listeners) {
         if (params.mention && !mention) {
           continue;
-        } else if (text) {
-          // don't include bot name in regex test
-          text = text.replace(NAME, '').trim();
-          text = text.replace(/&gt;/g, '>').replace(/&lt;/g, '<');
-
-				  ascii = foldToAscii(text);
         }
 
         if ((text && regex.test(text)) || (ascii && regex.test(ascii))) {
@@ -109,12 +131,19 @@ class Bot extends EventEmitter {
 
         ws.on('message', message => {
           let msg = JSON.parse(message);
-          let methods = messageMethods(this, msg);
+          let methods = messageMethods(this);
+          Object.assign(msg, methods);
 
-          msg = Object.assign(msg, methods);
+          if (msg.message) {
+            msg.message.channel = msg.channel;
+
+            let subMethods = messageMethods(this);
+            Object.assign(msg.message, subMethods);
+          }
 
           this.emit('raw_message', msg);
           this.emit(msg.type, msg);
+          this.emit(msg.subtype, msg.message || msg);
         });
       });
     })
@@ -360,7 +389,7 @@ class Bot extends EventEmitter {
    *                               in case of errors
    */
   @processable('call')
-  call(method, params = {}, websocket = false) {
+  async call(method, params = {}, websocket = false) {
     if (websocket) {
       this.ws.send(JSON.stringify({
         id: id++,
@@ -368,7 +397,8 @@ class Bot extends EventEmitter {
         ...params
       }));
 
-      return this.waitForReply(id - 1);
+      let reply = await this.waitForReply(id - 1);
+      return { ...params, ...reply };
     }
 
     let api = this._api || API; // this.api is used in tests
@@ -437,9 +467,14 @@ export default Bot;
  * @param  {Object} msg message object, used to prefill the methods
  * @return {Object}
  */
-function messageMethods(bot, msg) {
+export function messageMethods(bot) {
   return {
-    reply: bot.sendMessage.bind(bot, msg.channel),
-    react: bot.react.bind(bot, msg.channel, msg.ts || msg.timestamp)
+    reply(...args) { return bot.sendMessage.call(bot, this.channel, ...args) },
+    react(...args) { return bot.react.call(bot, this.channel, this.ts || this.timestamp, ...args) },
+    update(...args) { return bot.updateMessage.call(bot, this.channel, this.ts, ...args) },
+    delete(...args) { return bot.deleteMessage.call(bot, this.channel, this.ts, ...args) },
+    on(event, listener) {
+      bot.messageListeners.push({ event, listener, ts: this.ts, channel: this.channel });
+    }
   }
 }

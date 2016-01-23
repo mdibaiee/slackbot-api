@@ -1,6 +1,6 @@
 import 'mocha';
 import chai from 'chai';
-import Bot from '../src/bot';
+import Bot, { messageMethods } from '../src/bot';
 import sinon from 'sinon';
 import WebSocket from 'ws';
 import express from 'express';
@@ -18,15 +18,18 @@ const USERNAME = 'user';
 const USERID = 'U123123';
 const IMID = 'D123123';
 
-let ws = new WebSocket.Server({ port: 9090 });
-let app = express();
-app.listen(9091);
-
 describe('Bot', function() {
   this.timeout(LONG_DELAY);
-  let bot;
+  let bot, ws, app, server;
 
   beforeEach(() => {
+    if (server) server.close();
+    if (ws) ws.close();
+
+    ws = new WebSocket.Server({ port: 9090 });
+    app = express();
+    server = app.listen(9091);
+
     bot = new Bot({}, true);
     Object.assign(bot, {
       channels: [], bots: [],
@@ -309,6 +312,105 @@ describe('Bot', function() {
     })
   });
 
+  describe('message events', () => {
+    let timestamps = ['0000', '1111'];
+
+    it('should emit "updated" event', done => {
+      ws.on('connection', socket => {
+        let i = 0;
+
+        socket.on('message', message => {
+          let msg = JSON.parse(message);
+
+          let reply = {
+            type: 'message',
+            ok: true,
+            reply_to: msg.id,
+            ts: timestamps[i++]
+          };
+
+          socket.send(JSON.stringify(reply));
+        });
+
+        app.get('/chat.update', (request, response) => {
+          let msg = request.query;
+
+          response.json({ ok: true });
+
+          let update = {
+            type: 'message',
+            subtype: 'message_changed',
+            ts: msg.ts,
+            channel: msg.channel,
+            message: msg
+          };
+          socket.send(JSON.stringify(update));
+        });
+      });
+
+      bot.on('open', async () => {
+        let msg = await bot.sendMessage(GROUPID, 'folan');
+        let other = await bot.sendMessage(GROUPID, 'folan');
+        let cb = sinon.spy();
+
+        other.on('update', cb);
+        msg.on('update', () => {
+          cb.called.should.equal(false);
+          done();
+        });
+
+        msg.update('hey');
+      });
+    })
+
+    it('should emit "deleted" event', done => {
+      ws.on('connection', socket => {
+        let i = 0;
+
+        socket.on('message', message => {
+          let msg = JSON.parse(message);
+
+          let reply = {
+            type: 'message',
+            ok: true,
+            reply_to: msg.id,
+            ts: timestamps[i++]
+          };
+
+          socket.send(JSON.stringify(reply));
+        });
+
+        app.get('/chat.delete', (request, response) => {
+          let msg = request.query;
+
+          response.json({ ok: true });
+
+          let deleted = {
+            type: 'message',
+            subtype: 'message_deleted',
+            ts: msg.ts,
+            channel: msg.channel
+          };
+          socket.send(JSON.stringify(deleted));
+        });
+      });
+
+      bot.on('open', async () => {
+        let msg = await bot.sendMessage(GROUPID, 'folan');
+        let other = await bot.sendMessage(GROUPID, 'folan');
+        let cb = sinon.spy();
+
+        other.on('delete', cb);
+        msg.on('delete', () => {
+          cb.called.should.equal(false);
+          done();
+        });
+
+        msg.delete();
+      });
+    })
+  })
+
   describe('random', () => {
     it('should return a random item of inputs', done => {
       bot.random('Hi', 'Hey', 'Ay').should.satisfy(result => {
@@ -342,7 +444,6 @@ describe('Bot', function() {
     });
   })
 
-
   describe('updateMessage', () => {
     it('should send request to API chat.update', done => {
       app.get('/chat.update', request => {
@@ -365,6 +466,58 @@ describe('Bot', function() {
       });
 
       bot.deleteMessage(GROUP, 123123);
+    });
+  });
+
+  describe('message methods', () => {
+    it('should update messages correctly', done => {
+      app.get('/chat.update', request => {
+        request.query.channel.should.equal(GROUPID);
+        request.query.ts.should.equal('123123');
+        request.query.text.should.equal('newtext');
+
+        done();
+      });
+
+      let msg = Object.assign({
+        ts: '123123',
+        channel: GROUPID
+      }, messageMethods(bot));
+
+      msg.update('newtext');
+    });
+
+    it('should delete messages correctly', done => {
+      app.get('/chat.delete', request => {
+        request.query.channel.should.equal(GROUPID);
+        request.query.ts.should.equal('123123');
+
+        done();
+      });
+
+      let msg = Object.assign({
+        ts: '123123',
+        channel: GROUPID
+      }, messageMethods(bot));
+
+      msg.delete();
+    });
+
+    it('should react to messages correctly', done => {
+      app.get('/reactions.add', request => {
+        request.query.channel.should.equal(GROUPID);
+        request.query.timestamp.should.equal('123123');
+        request.query.name.should.equal('thumbsup')
+
+        done();
+      });
+
+      let msg = Object.assign({
+        ts: '123123',
+        channel: GROUPID
+      }, messageMethods(bot));
+
+      msg.react('thumbsup');
     });
   })
 
