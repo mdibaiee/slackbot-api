@@ -51,11 +51,12 @@ class Bot extends EventEmitter {
     }
 
     this.on('message_changed', message => {
+      let newMessage = { ...message.message, channel: message.channel };
+
       let update = this.messageListeners
-      .filter(a => a.ts === message.ts && a.channel === message.channel)
+      .filter(a => a.ts === newMessage.ts && a.channel === newMessage.channel)
       .filter(a => a.event === 'update');
 
-      let newMessage = { ...message.message, channel: message.channel };
       update.forEach(({listener}) => listener(newMessage));
     });
 
@@ -143,7 +144,7 @@ class Bot extends EventEmitter {
 
           this.emit('raw_message', msg);
           this.emit(msg.type, msg);
-          this.emit(msg.subtype, msg.message || msg);
+          this.emit(msg.subtype, msg);
         });
       });
     })
@@ -475,6 +476,13 @@ export function messageMethods(bot) {
     delete(...args) { return bot.deleteMessage.call(bot, this.channel, this.ts, ...args) },
     on(event, listener) {
       bot.messageListeners.push({ event, listener, ts: this.ts, channel: this.channel });
+    },
+    off(event, listener) {
+      let index = bot.messageListeners.findIndex(a =>
+        a.event === event && a.listener === listener
+      );
+
+      bot.messageListeners.splice(index, 1);
     }
   }
 }

@@ -409,6 +409,19 @@ describe('Bot', function() {
         msg.delete();
       });
     })
+
+    describe('off', () => {
+      it('should remove the listener', done => {
+        let msg = messageMethods(bot);
+
+        let listener = () => {};
+        msg.on('update', listener);
+        msg.off('update', listener);
+
+        bot.messageListeners.length.should.equal(0);
+        done();
+      });
+    })
   })
 
   describe('random', () => {
