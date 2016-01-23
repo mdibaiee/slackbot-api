@@ -47,12 +47,16 @@ bot.sendMessage('general', 'Hello', {
 #deleteMessage
 ```javascript
 let msg = await bot.sendMessage('general', 'Hello guys! wassup?');
+msg.delete();
+// or
 bot.deleteMessage('general', msg.ts);
 ```
 
 #updateMessage
 ```javascript
 let msg = await bot.sendMessage('general', 'i can haz cakez');
+msg.update('Yarrrrr!');
+// or
 bot.updateMessage('general', msg.ts, 'Yarrrrr!');
 ```
 
@@ -88,6 +92,19 @@ Listen on events.
 ```javascript
 bot.on('channel_joined', event => {
   bot.sendMessage(event.channel.id, 'Hello guys! Thanks for inviting me.');
+});
+```
+
+#message events
+You can also listen on individual messages' events
+```javascript
+bot.listen(/list/, message => {
+  message.on('update', msg => {
+    msg.reply(`Updated from ${message.text} to ${msg.text}`);
+  })
+  message.on('delete', msg => {
+    msg.reply('Are you hiding something?');
+  });
 });
 ```
 
