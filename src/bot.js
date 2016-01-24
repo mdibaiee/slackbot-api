@@ -66,7 +66,27 @@ class Bot extends EventEmitter {
       .filter(a => a.event === 'delete');
 
       deleted.forEach(({listener}) => listener(message));
-    })
+    });
+
+    this.on('reaction_added', message => {
+      let { item } = message;
+
+      let reacted = this.messageListeners
+      .filter(a => a.ts === item.ts && a.channel === item.channel)
+      .filter(a => a.event === 'reaction_added');
+
+      reacted.forEach(({listener}) => listener(message));
+    });
+
+    this.on('reaction_removed', message => {
+      let { item } = message;
+
+      let removed = this.messageListeners
+      .filter(a => a.ts === item.ts && a.channel === item.channel)
+      .filter(a => a.event === 'reaction_removed');
+
+      removed.forEach(({listener}) => listener(message));
+    });
 
     this.on('message', message => {
       if (message.subtype) return;
@@ -471,7 +491,7 @@ export default Bot;
 export function messageMethods(bot) {
   return {
     reply(...args) { return bot.sendMessage.call(bot, this.channel, ...args) },
-    react(...args) { return bot.react.call(bot, this.channel, this.ts || this.timestamp, ...args) },
+    react(...args) { return bot.react.call(bot, this.channel, this.ts, ...args) },
     update(...args) { return bot.updateMessage.call(bot, this.channel, this.ts, ...args) },
     delete(...args) { return bot.deleteMessage.call(bot, this.channel, this.ts, ...args) },
     on(event, listener) {

@@ -323,7 +323,6 @@ describe('Bot', function() {
           let msg = JSON.parse(message);
 
           let reply = {
-            type: 'message',
             ok: true,
             reply_to: msg.id,
             ts: timestamps[i++]
@@ -371,7 +370,6 @@ describe('Bot', function() {
           let msg = JSON.parse(message);
 
           let reply = {
-            type: 'message',
             ok: true,
             reply_to: msg.id,
             ts: timestamps[i++]
@@ -409,6 +407,106 @@ describe('Bot', function() {
         msg.delete();
       });
     })
+
+    it('should emit "reaction_added" event', done => {
+      ws.on('connection', socket => {
+        let i = 0;
+
+        socket.on('message', message => {
+          let msg = JSON.parse(message);
+
+          let reply = {
+            ok: true,
+            reply_to: msg.id,
+            ts: timestamps[i++]
+          };
+
+          socket.send(JSON.stringify(reply));
+        });
+
+        app.get('/reactions.add', (request, response) => {
+          let msg = request.query;
+
+          response.json({ ok: true });
+
+          let reaction = {
+            type: 'reaction_added',
+            item: {
+              ts: msg.timestamp,
+              channel: msg.channel
+            }
+          };
+          socket.send(JSON.stringify(reaction));
+        });
+      });
+
+      bot.on('open', async () => {
+        let msg = await bot.sendMessage(GROUPID, 'folan');
+        let other = await bot.sendMessage(GROUPID, 'folan');
+        let cb = sinon.spy();
+
+        other.on('reaction_added', cb);
+        msg.on('reaction_added', () => {
+          cb.called.should.equal(false);
+          done();
+        });
+
+        msg.react(':rocket:');
+      });
+    });
+
+
+    it('should emit "reaction_removed" event', done => {
+      ws.on('connection', socket => {
+        let i = 0;
+
+        socket.on('message', message => {
+          let msg = JSON.parse(message);
+
+          let reply = {
+            ok: true,
+            reply_to: msg.id,
+            ts: timestamps[i++]
+          };
+
+          socket.send(JSON.stringify(reply));
+        });
+
+        app.get('/reactions.remove', (request, response) => {
+          let msg = request.query;
+          console.log(msg);
+
+          response.json({ ok: true });
+
+          let reaction = {
+            type: 'reaction_removed',
+            item: {
+              ts: msg.timestamp,
+              channel: msg.channel
+            }
+          };
+          socket.send(JSON.stringify(reaction));
+        });
+      });
+
+      bot.on('open', async () => {
+        let msg = await bot.sendMessage(GROUPID, 'folan');
+        let other = await bot.sendMessage(GROUPID, 'folan');
+        let cb = sinon.spy();
+
+        other.on('reaction_removed', cb);
+        msg.on('reaction_removed', () => {
+          cb.called.should.equal(false);
+          done();
+        });
+
+        bot.call('reactions.remove', {
+          timestamp: msg.ts,
+          channel: msg.channel,
+          name: ':rocket:'
+        });
+      });
+    });
 
     describe('off', () => {
       it('should remove the listener', done => {

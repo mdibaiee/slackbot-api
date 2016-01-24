@@ -105,6 +105,9 @@ bot.listen(/list/, message => {
   message.on('delete', msg => {
     msg.reply('Are you hiding something?');
   });
+
+  message.on('reaction_added', ...);
+  message.on('reaction_removed', ...);
 });
 ```
 
