@@ -17,7 +17,7 @@ export default {
       modifiers[name] = [];
     }
 
-    let index = modifiers[name].push({
+    const index = modifiers[name].push({
       type: PREPROCESSOR, fn
     });
 
@@ -37,7 +37,7 @@ export default {
       modifiers[name] = [];
     }
 
-    let index = modifiers[name].push({
+    const index = modifiers[name].push({
       type: POSTPROCESSOR, fn
     });
 
@@ -68,7 +68,7 @@ export default {
       modifiers[name] = [];
     }
 
-    let index = modifiers[name].push({
+    const index = modifiers[name].push({
       type: MIDDLEWARE, fn
     });
 
@@ -84,13 +84,13 @@ export default {
    *                          (resolve) or not (reject)
    */
   trigger(name, context) {
-    let middlewares = (modifiers[name] || []).filter(item => {
-      return item.type === MIDDLEWARE;
-    });
+    const middlewares = (modifiers[name] || []).filter(item =>
+       item.type === MIDDLEWARE
+    );
 
     return Promise.all(
       middlewares.map(middleware => {
-        let fn = middleware.fn;
+        const fn = middleware.fn;
 
         return fn(context);
       })
@@ -120,7 +120,7 @@ export default {
   modifiers() {
     return modifiers;
   }
-}
+};
 
 /**
  * A decorator which modifies a function to be processable, allowing
@@ -130,30 +130,25 @@ export default {
  * @return {Function}    decorator
  */
 export function processable(name) {
-  return function(target, key, descriptor) {
-    let originalFunction = descriptor.value;
-    descriptor.value = function(...args) {
+  return function decorator(target, key, descriptor) {
+    const originalFunction = descriptor.value;
+    descriptor.value = function fn(...args) {
+      const list = modifiers[name] || [];
 
-      let list = modifiers[name] || [];
+      const preprocessors = list.filter(item => item.type === PREPROCESSOR);
+      const postprocessors = list.filter(item => item.type === POSTPROCESSOR);
 
-      let preprocessors = list.filter(item => {
-        return item.type === PREPROCESSOR;
-      });
-      let postprocessors = list.filter(item => {
-        return item.type === POSTPROCESSOR;
-      });
+      const filteredArgs = preprocessors.reduce((modified, modifier) =>
+        modifier.fn(...modified)
+      , args);
 
-      let filteredArgs = preprocessors.reduce((modified, modifier) => {
-        return modifier.fn(...modified);
-      }, args);
+      const value = originalFunction.apply(this, filteredArgs);
 
-      let value = originalFunction.apply(this, filteredArgs);
-
-      let filteredValue = postprocessors.reduce((modified, modifier) => {
-        return modifier.fn(modified);
-      }, value);
+      const filteredValue = postprocessors.reduce((modified, modifier) =>
+        modifier.fn(modified)
+      , value);
 
       return filteredValue;
-    }
-  }
+    };
+  };
 }

@@ -18,9 +18,12 @@ const USERNAME = 'user';
 const USERID = 'U123123';
 const IMID = 'D123123';
 
-describe('Bot', function() {
+describe('Bot', function test() {
   this.timeout(LONG_DELAY);
-  let bot, ws, app, server;
+  let bot;
+  let ws;
+  let app;
+  let server;
 
   beforeEach(() => {
     if (server) server.close();
@@ -54,7 +57,7 @@ describe('Bot', function() {
 
     bot.connect('ws://127.0.0.1:9090');
     bot._api = 'http://127.0.0.1:9091/';
-  })
+  });
 
   describe('constructor', () => {
     it('should connect to websocket server', done => {
@@ -63,41 +66,41 @@ describe('Bot', function() {
       ws.on('connection', socket => {
         socket.send('{}');
       });
-    })
-  })
+    });
+  });
 
   describe('hear', () => {
     it('should test messages against regexp correctly', done => {
-      let cb = sinon.spy();
+      const cb = sinon.spy();
       bot.hear(/Testing@\d+/, cb);
 
       setImmediate(() => {
         cb.called.should.equal(true);
 
         done();
-      })
+      });
 
-      let listener = bot._events.message;
+      const listener = bot._events.message;
       listener({
         text: 'Testing@123',
         channel: GROUPID
       });
-    })
+    });
 
     it('should not crash when message doesn\'t have text property', done => {
-      bot.hear(() => {});
+      bot.hear(() => 0);
 
-      let listener = bot._events.message;
+      const listener = bot._events.message;
 
       listener.bind(bot, {}).should.not.throw();
 
       done();
     });
-  })
+  });
 
   describe('listen', () => {
     it('should only match if the bot name is mentioned', done => {
-      let cb = sinon.spy();
+      const cb = sinon.spy();
       bot.listen(/hi/, cb);
 
       setImmediate(() => {
@@ -106,7 +109,7 @@ describe('Bot', function() {
         done();
       }, DELAY);
 
-      let listener = bot._events.message;
+      const listener = bot._events.message;
       listener({
         text: 'hi',
         channel: GROUPID
@@ -115,10 +118,10 @@ describe('Bot', function() {
         text: `hi ${NAME}`,
         channel: GROUPID
       });
-    })
+    });
 
     it('should not require mentioning bot name in case of IM', done => {
-      let cb = sinon.spy();
+      const cb = sinon.spy();
       bot.listen(/hi/, cb);
 
       setImmediate(() => {
@@ -127,15 +130,15 @@ describe('Bot', function() {
         done();
       }, DELAY);
 
-      let listener = bot._events.message;
+      const listener = bot._events.message;
       listener({
         text: 'hi',
         channel: DIRECTID
       });
-    })
+    });
 
     it('should match against bot name when regex argument is omitted', done => {
-      let cb = sinon.spy();
+      const cb = sinon.spy();
       bot.listen(cb);
 
       setImmediate(() => {
@@ -144,7 +147,7 @@ describe('Bot', function() {
         done();
       });
 
-      let listener = bot._events.message;
+      const listener = bot._events.message;
       listener({
         text: 'ok',
         channel: GROUPID
@@ -152,10 +155,9 @@ describe('Bot', function() {
       listener({
         text: NAME,
         channel: GROUPID
-      })
-    })
-
-  })
+      });
+    });
+  });
 
   describe('icon', () => {
     it('should set emoji icon correctly', done => {
@@ -170,7 +172,7 @@ describe('Bot', function() {
       bot.globals.icon_url.should.equal('http://folan.com');
 
       done();
-    })
+    });
 
     it('should clear property in case of falsy input', done => {
       bot.icon();
@@ -178,20 +180,20 @@ describe('Bot', function() {
       bot.globals.should.not.have.property('icon_emoji');
 
       done();
-    })
-  })
+    });
+  });
 
   describe('sendMessage', () => {
     it('should send to group correctly', done => {
       ws.on('connection', socket => {
         socket.on('message', message => {
-          let msg = JSON.parse(message);
+          const msg = JSON.parse(message);
 
           msg.text.should.equal('sendMessage-group');
           msg.channel.should.equal(GROUPID);
           msg.type.should.equal('message');
           done();
-        })
+        });
       });
 
       bot.on('open', () => {
@@ -203,28 +205,27 @@ describe('Bot', function() {
       // an ID that doesn't exist in `bot.all()`
       // if `sendMessage` tries to find the channel, it will throw an error
       // else, our test will pass
-      const randomid = 'D0000';
       ws.on('connection', socket => {
         socket.on('message', message => {
-          let msg = JSON.parse(message);
+          const msg = JSON.parse(message);
           msg.channel.should.equal(GROUPID);
           done();
-        })
+        });
       });
 
       bot.on('open', () => {
         bot.sendMessage(GROUPID, 'sendMessage-group');
       });
-    })
+    });
 
     it('should catch server replies to that message', done => {
       ws.on('connection', socket => {
         let ok = true;
 
         socket.on('message', message => {
-          let msg = JSON.parse(message);
+          const msg = JSON.parse(message);
 
-          let response = {
+          const response = {
             reply_to: msg.id,
             ok
           };
@@ -233,20 +234,20 @@ describe('Bot', function() {
 
           socket.send(JSON.stringify(response));
         });
-      })
+      });
 
       bot.on('open', () => {
         bot.sendMessage(GROUP, 'test').then(reply => {
           reply.ok.should.equal(true);
         });
 
-        bot.sendMessage(GROUP, 'test').then(() => {}, reply => {
+        bot.sendMessage(GROUP, 'test').then(() => 0, reply => {
           reply.ok.should.equal(false);
 
           done();
-        })
-      })
-    })
+        });
+      });
+    });
 
     it('should send message to multiple channels', done => {
       let callCount = 0;
@@ -254,11 +255,11 @@ describe('Bot', function() {
       ws.on('connection', socket => {
         socket.on('message', message => {
           callCount++;
-          let msg = JSON.parse(message);
+          const msg = JSON.parse(message);
 
-          let response = {
+          const response = {
             reply_to: msg.id
-          }
+          };
 
           socket.send(JSON.stringify(response));
         });
@@ -276,7 +277,7 @@ describe('Bot', function() {
     it('should send message to @usernames', done => {
       ws.on('connection', socket => {
         socket.on('message', message => {
-          let msg = JSON.parse(message);
+          const msg = JSON.parse(message);
 
           msg.channel.should.equal('@test');
           done();
@@ -285,13 +286,13 @@ describe('Bot', function() {
 
       bot.on('open', () => {
         bot.sendMessage('@test', 'Hey');
-      })
+      });
     });
 
     it('should send message to IMs when a username is provided', done => {
       ws.on('connection', socket => {
         socket.on('message', message => {
-          let msg = JSON.parse(message);
+          const msg = JSON.parse(message);
 
           msg.channel.should.equal(IMID);
           done();
@@ -300,29 +301,30 @@ describe('Bot', function() {
 
       bot.on('open', () => {
         bot.sendMessage(USERNAME, 'Hey');
-      })
+      });
     });
 
     it('should throw error in case of unavailable channel', done => {
       bot.on('open', () => {
-        bot.sendMessage.bind(bot, Math.random() + '', 'Hey').should.throw();
+        const r = Math.random().toString();
+        bot.sendMessage.bind(bot, r, 'Hey').should.throw();
 
         done();
-      })
-    })
+      });
+    });
   });
 
   describe('message events', () => {
-    let timestamps = ['0000', '1111'];
+    const timestamps = ['0000', '1111'];
 
     it('should emit "updated" event', done => {
       ws.on('connection', socket => {
         let i = 0;
 
         socket.on('message', message => {
-          let msg = JSON.parse(message);
+          const msg = JSON.parse(message);
 
-          let reply = {
+          const reply = {
             ok: true,
             reply_to: msg.id,
             ts: timestamps[i++]
@@ -332,11 +334,11 @@ describe('Bot', function() {
         });
 
         app.get('/chat.update', (request, response) => {
-          let msg = request.query;
+          const msg = request.query;
 
           response.json({ ok: true });
 
-          let update = {
+          const update = {
             type: 'message',
             subtype: 'message_changed',
             ts: msg.ts,
@@ -348,9 +350,9 @@ describe('Bot', function() {
       });
 
       bot.on('open', async () => {
-        let msg = await bot.sendMessage(GROUPID, 'folan');
-        let other = await bot.sendMessage(GROUPID, 'folan');
-        let cb = sinon.spy();
+        const msg = await bot.sendMessage(GROUPID, 'folan');
+        const other = await bot.sendMessage(GROUPID, 'folan');
+        const cb = sinon.spy();
 
         other.on('update', cb);
         msg.on('update', () => {
@@ -360,16 +362,16 @@ describe('Bot', function() {
 
         msg.update('hey');
       });
-    })
+    });
 
-    it('should emit "deleted" event', done => {
+    it('should emit "delete" event', done => {
       ws.on('connection', socket => {
         let i = 0;
 
         socket.on('message', message => {
-          let msg = JSON.parse(message);
+          const msg = JSON.parse(message);
 
-          let reply = {
+          const reply = {
             ok: true,
             reply_to: msg.id,
             ts: timestamps[i++]
@@ -379,11 +381,11 @@ describe('Bot', function() {
         });
 
         app.get('/chat.delete', (request, response) => {
-          let msg = request.query;
+          const msg = request.query;
 
           response.json({ ok: true });
 
-          let deleted = {
+          const deleted = {
             type: 'message',
             subtype: 'message_deleted',
             ts: msg.ts,
@@ -394,9 +396,9 @@ describe('Bot', function() {
       });
 
       bot.on('open', async () => {
-        let msg = await bot.sendMessage(GROUPID, 'folan');
-        let other = await bot.sendMessage(GROUPID, 'folan');
-        let cb = sinon.spy();
+        const msg = await bot.sendMessage(GROUPID, 'folan');
+        const other = await bot.sendMessage(GROUPID, 'folan');
+        const cb = sinon.spy();
 
         other.on('delete', cb);
         msg.on('delete', () => {
@@ -406,16 +408,16 @@ describe('Bot', function() {
 
         msg.delete();
       });
-    })
+    });
 
     it('should emit "reaction_added" event', done => {
       ws.on('connection', socket => {
         let i = 0;
 
         socket.on('message', message => {
-          let msg = JSON.parse(message);
+          const msg = JSON.parse(message);
 
-          let reply = {
+          const reply = {
             ok: true,
             reply_to: msg.id,
             ts: timestamps[i++]
@@ -425,11 +427,11 @@ describe('Bot', function() {
         });
 
         app.get('/reactions.add', (request, response) => {
-          let msg = request.query;
+          const msg = request.query;
 
           response.json({ ok: true });
 
-          let reaction = {
+          const reaction = {
             type: 'reaction_added',
             item: {
               ts: msg.timestamp,
@@ -441,9 +443,9 @@ describe('Bot', function() {
       });
 
       bot.on('open', async () => {
-        let msg = await bot.sendMessage(GROUPID, 'folan');
-        let other = await bot.sendMessage(GROUPID, 'folan');
-        let cb = sinon.spy();
+        const msg = await bot.sendMessage(GROUPID, 'folan');
+        const other = await bot.sendMessage(GROUPID, 'folan');
+        const cb = sinon.spy();
 
         other.on('reaction_added', cb);
         msg.on('reaction_added', () => {
@@ -461,9 +463,9 @@ describe('Bot', function() {
         let i = 0;
 
         socket.on('message', message => {
-          let msg = JSON.parse(message);
+          const msg = JSON.parse(message);
 
-          let reply = {
+          const reply = {
             ok: true,
             reply_to: msg.id,
             ts: timestamps[i++]
@@ -473,12 +475,12 @@ describe('Bot', function() {
         });
 
         app.get('/reactions.remove', (request, response) => {
-          let msg = request.query;
+          const msg = request.query;
           console.log(msg);
 
           response.json({ ok: true });
 
-          let reaction = {
+          const reaction = {
             type: 'reaction_removed',
             item: {
               ts: msg.timestamp,
@@ -490,9 +492,9 @@ describe('Bot', function() {
       });
 
       bot.on('open', async () => {
-        let msg = await bot.sendMessage(GROUPID, 'folan');
-        let other = await bot.sendMessage(GROUPID, 'folan');
-        let cb = sinon.spy();
+        const msg = await bot.sendMessage(GROUPID, 'folan');
+        const other = await bot.sendMessage(GROUPID, 'folan');
+        const cb = sinon.spy();
 
         other.on('reaction_removed', cb);
         msg.on('reaction_removed', () => {
@@ -510,27 +512,28 @@ describe('Bot', function() {
 
     describe('off', () => {
       it('should remove the listener', done => {
-        let msg = messageMethods(bot);
+        const msg = messageMethods(bot);
 
-        let listener = () => {};
+        const listener = () => 0;
         msg.on('update', listener);
         msg.off('update', listener);
 
         bot.messageListeners.length.should.equal(0);
         done();
       });
-    })
-  })
+    });
+  });
 
   describe('random', () => {
     it('should return a random item of inputs', done => {
-      bot.random('Hi', 'Hey', 'Ay').should.satisfy(result => {
-        return ['Hi', 'Hey', 'Ay'].indexOf(result) > -1;
-      });
+      const options = ['Hi', 'Hey', 'Ay'];
+      bot.random(...options).should.satisfy(result =>
+        options.indexOf(result) > -1
+      );
 
       done();
-    })
-  })
+    });
+  });
 
   describe('emojis', () => {
     it('should send request to API emoji.list', done => {
@@ -539,8 +542,8 @@ describe('Bot', function() {
       });
 
       bot.emojis();
-    })
-  })
+    });
+  });
 
   describe('react', () => {
     it('should send request to API reactions.add', done => {
@@ -553,7 +556,7 @@ describe('Bot', function() {
 
       bot.react(GROUP, 123123, 'rocket');
     });
-  })
+  });
 
   describe('updateMessage', () => {
     it('should send request to API chat.update', done => {
@@ -566,7 +569,7 @@ describe('Bot', function() {
 
       bot.updateMessage(GROUP, 123123, 'newtext');
     });
-  })
+  });
 
   describe('deleteMessage', () => {
     it('should send request to API chat.delete', done => {
@@ -590,7 +593,7 @@ describe('Bot', function() {
         done();
       });
 
-      let msg = Object.assign({
+      const msg = Object.assign({
         ts: '123123',
         channel: GROUPID
       }, messageMethods(bot));
@@ -606,7 +609,7 @@ describe('Bot', function() {
         done();
       });
 
-      let msg = Object.assign({
+      const msg = Object.assign({
         ts: '123123',
         channel: GROUPID
       }, messageMethods(bot));
@@ -618,29 +621,30 @@ describe('Bot', function() {
       app.get('/reactions.add', request => {
         request.query.channel.should.equal(GROUPID);
         request.query.timestamp.should.equal('123123');
-        request.query.name.should.equal('thumbsup')
+        request.query.name.should.equal('thumbsup');
 
         done();
       });
 
-      let msg = Object.assign({
+      const msg = Object.assign({
         ts: '123123',
         channel: GROUPID
       }, messageMethods(bot));
 
       msg.react('thumbsup');
     });
-  })
+  });
 
   describe('all', () => {
     it('should return concated lists of channels, groups, users, ...', done => {
-      let all = bot.all();
+      const all = bot.all();
 
-      all.should.have.length(bot.users.length + bot.ims.length + bot.groups.length);
+      const len = bot.users.length + bot.ims.length + bot.groups.length;
+      all.should.have.length(len);
 
       done();
-    })
-  })
+    });
+  });
 
   describe('find', () => {
     it('should find using name or id', done => {
@@ -649,7 +653,7 @@ describe('Bot', function() {
 
       done();
     });
-  })
+  });
 
   describe('type', () => {
     it('should detect name/id', done => {
@@ -657,6 +661,6 @@ describe('Bot', function() {
       bot.type(GROUPID).should.equal('ID');
 
       done();
-    })
-  })
-})
+    });
+  });
+});

@@ -1,7 +1,6 @@
 import Modifiers, { processable } from './modifiers';
 import EventEmitter from 'events';
 import WebSocket from 'ws';
-import https from 'https';
 import querystring from 'querystring';
 import unirest from 'unirest';
 import { fold as foldToAscii } from 'fold-to-ascii';
@@ -11,6 +10,33 @@ const API = 'https://slack.com/api/';
 const START_URI = 'https://slack.com/api/rtm.start';
 
 let id = 0;
+
+/**
+ * A set of methods which are set on message objects before emitting events.
+ * These methods are simpler forms of bot methods which prefill the message
+ * parameters
+ * @param  {Bot}    bot bot instance, used as context when binding functions
+ * @param  {Object} msg message object, used to prefill the methods
+ * @return {Object}
+ */
+export function messageMethods(bot) {
+  return {
+    reply(...args) { return bot.sendMessage.call(bot, this.channel, ...args); },
+    react(...args) { return bot.react.call(bot, this.channel, this.ts, ...args); },
+    update(...args) { return bot.updateMessage.call(bot, this.channel, this.ts, ...args); },
+    delete(...args) { return bot.deleteMessage.call(bot, this.channel, this.ts, ...args); },
+    on(event, listener) {
+      bot.messageListeners.push({ event, listener, ts: this.ts, channel: this.channel });
+    },
+    off(event, listener) {
+      const index = bot.messageListeners.findIndex(a =>
+        a.event === event && a.listener === listener
+      );
+
+      bot.messageListeners.splice(index, 1);
+    }
+  };
+}
 
 class Bot extends EventEmitter {
   /**
@@ -37,11 +63,11 @@ class Bot extends EventEmitter {
     /* istanbul ignore if */
     if (!manual) {
       // Send a request and fetch Real-time Messaging API's websocket server
-      let options = querystring.stringify(config);
-      unirest.get(START_URI + '?' + options)
-      .headers({'Accept': 'application/json'})
+      const options = querystring.stringify(config);
+      unirest.get(`${START_URI}?${options}`)
+      .headers({ Accept: 'application/json' })
       .end(response => {
-        let data = response.body;
+        const data = response.body;
 
         this.connect(data.url);
         delete data.ok;
@@ -51,47 +77,47 @@ class Bot extends EventEmitter {
     }
 
     this.on('message_changed', message => {
-      let newMessage = { ...message.message, channel: message.channel };
+      const newMessage = { ...message.message, channel: message.channel };
 
-      let update = this.messageListeners
+      const update = this.messageListeners
       .filter(a => a.ts === newMessage.ts && a.channel === newMessage.channel)
       .filter(a => a.event === 'update');
 
-      update.forEach(({listener}) => listener(newMessage));
+      update.forEach(({ listener }) => listener(newMessage));
     });
 
     this.on('message_deleted', message => {
-      let deleted = this.messageListeners
+      const deleted = this.messageListeners
       .filter(a => a.ts === message.ts && a.channel === message.channel)
       .filter(a => a.event === 'delete');
 
-      deleted.forEach(({listener}) => listener(message));
+      deleted.forEach(({ listener }) => listener(message));
     });
 
     this.on('reaction_added', message => {
-      let { item } = message;
+      const { item } = message;
 
-      let reacted = this.messageListeners
+      const reacted = this.messageListeners
       .filter(a => a.ts === item.ts && a.channel === item.channel)
       .filter(a => a.event === 'reaction_added');
 
-      reacted.forEach(({listener}) => listener(message));
+      reacted.forEach(({ listener }) => listener(message));
     });
 
     this.on('reaction_removed', message => {
-      let { item } = message;
+      const { item } = message;
 
-      let removed = this.messageListeners
+      const removed = this.messageListeners
       .filter(a => a.ts === item.ts && a.channel === item.channel)
       .filter(a => a.event === 'reaction_removed');
 
-      removed.forEach(({listener}) => listener(message));
+      removed.forEach(({ listener }) => listener(message));
     });
 
     this.on('message', message => {
       if (message.subtype) return;
 
-      const NAME = new RegExp('\\b' + this.self.name + '\\b', 'i');
+      const NAME = new RegExp(`\\b${this.self.name}\\b`, 'i');
       let mention;
 
       // if channel name starts with D, it's a Direct message and
@@ -113,23 +139,23 @@ class Bot extends EventEmitter {
       text = text.replace(NAME, '').trim();
       text = text.replace(/&gt;/g, '>').replace(/&lt;/g, '<');
 
-		  ascii = foldToAscii(text);
+      ascii = foldToAscii(text);
 
-      for (let {listener, regex, params} of this.listeners) {
+      for (const { listener, regex, params } of this.listeners) {
         if (params.mention && !mention) {
           continue;
         }
 
         if ((text && regex.test(text)) || (ascii && regex.test(ascii))) {
-          let msg = { ...message, ascii }; // clone
+          const msg = { ...message, ascii }; // clone
           msg.match = regex.exec(text);
-					msg.asciiMatch = regex.exec(ascii);
-					if (msg.match) msg.match.splice(0, 1);
-					if (msg.asciiMatch) msg.asciiMatch.splice(0, 1);
+          msg.asciiMatch = regex.exec(ascii);
+          if (msg.match) msg.match.splice(0, 1);
+          if (msg.asciiMatch) msg.asciiMatch.splice(0, 1);
 
-          Modifiers.trigger('hear', {...msg, ...params}).then(() => {
-            return listener(msg);
-          }).catch(console.error.bind(console));
+          Modifiers.trigger('hear', { ...msg, ...params }).then(() =>
+            listener(msg)
+          ).catch(console.error.bind(console));
         }
       }
     });
@@ -143,22 +169,22 @@ class Bot extends EventEmitter {
   @processable('connect')
   connect(url) {
     this.ws = new WebSocket(url);
-    let ws = this.ws;
+    const ws = this.ws;
 
-    return new Promise((resolve, reject) => {
+    return new Promise(resolve => {
       ws.on('open', () => {
         this.emit('open');
         resolve();
 
         ws.on('message', message => {
-          let msg = JSON.parse(message);
-          let methods = messageMethods(this);
+          const msg = JSON.parse(message);
+          const methods = messageMethods(this);
           Object.assign(msg, methods);
 
           if (msg.message) {
             msg.message.channel = msg.channel;
 
-            let subMethods = messageMethods(this);
+            const subMethods = messageMethods(this);
             Object.assign(msg.message, subMethods);
           }
 
@@ -167,7 +193,7 @@ class Bot extends EventEmitter {
           this.emit(msg.subtype, msg);
         });
       });
-    })
+    });
   }
 
   /**
@@ -178,10 +204,11 @@ class Bot extends EventEmitter {
    */
   @processable('find')
   find(name) {
-    if (this.type(name) === 'ID')
+    if (this.type(name) === 'ID') {
       return this.all().find(item => item.id === name);
-    else
-      return this.all().find(item => item.name === name);
+    }
+
+    return this.all().find(item => item.name === name);
   }
 
   /**
@@ -206,7 +233,7 @@ class Bot extends EventEmitter {
    */
   @processable('hear')
   hear(regex, listener, params = {}) {
-    this.listeners.push({regex, listener, params});
+    this.listeners.push({ regex, listener, params });
 
     return this;
   }
@@ -243,12 +270,12 @@ class Bot extends EventEmitter {
   @processable('sendMessage')
   sendMessage(channel, text, params = {}) {
     if (Array.isArray(channel)) {
-      return Promise.all(channel.map(ch => {
-        return this.sendMessage(ch, text, params);
-      }));
+      return Promise.all(channel.map(ch =>
+        this.sendMessage(ch, text, params)
+      ));
     }
 
-    let options = {...this.globals, ...params};
+    const options = { ...this.globals, ...params };
     let target;
 
     // @username sends the message to the users' @slackbot channel
@@ -259,25 +286,25 @@ class Bot extends EventEmitter {
 
       // sending to users
       if (target && target[0] === 'U') {
-        target = (this.ims.find(im => {
-          return im.user === target;
-        }) || {}).id;
+        target = (this.ims.find(im => im.user === target) || {}).id;
       }
 
 
-      if (!target) throw new Error('Could not find channel ' + channel);
+      if (!target) throw new Error(`Could not find channel ${channel}`);
     }
 
-		text = text.replace(/&/g, '&amp;').replace(/</, '&lt;').replace(/>/, '&gt;');
+    text = text.replace(/&/g, '&amp;')
+                .replace(/</, '&lt;')
+                .replace(/>/, '&gt;');
 
-    let msg = {
+    const msg = {
       channel: target,
       text, ...options
     };
 
-    return Modifiers.trigger('sendMessage', {...msg, ...params}).then(() => {
-      return this.call('message', msg, true);
-    });
+    return Modifiers.trigger('sendMessage', { ...msg, ...params }).then(() =>
+      this.call('message', msg, true)
+    );
   }
 
   /**
@@ -290,15 +317,15 @@ class Bot extends EventEmitter {
    */
   @processable('deleteMessage')
   deleteMessage(channel, timestamp, params = {}) {
-    let target = this.find(channel);
+    const target = this.find(channel);
 
-    let msg = {
+    const msg = {
       channel: target.id, ts: timestamp
     };
 
-    return Modifiers.trigger('deleteMessage', {...msg, ...params}).then(() => {
-      return this.call('chat.delete', msg);
-    });
+    return Modifiers.trigger('deleteMessage', { ...msg, ...params }).then(() =>
+      this.call('chat.delete', msg)
+    );
   }
 
 
@@ -313,16 +340,16 @@ class Bot extends EventEmitter {
    */
   @processable('updateMessage')
   updateMessage(channel, timestamp, text, params = {}) {
-    let target = this.find(channel);
+    const target = this.find(channel);
 
-    let msg = {
+    const msg = {
       channel: target.id, ts: timestamp,
       text, ...params
     };
 
-    return Modifiers.trigger('updateMessage', {...msg, ...params}).then(() => {
-      return this.call('chat.update', msg);
-    });
+    return Modifiers.trigger('updateMessage', { ...msg, ...params }).then(() =>
+      this.call('chat.update', msg)
+    );
   }
 
   /**
@@ -332,14 +359,12 @@ class Bot extends EventEmitter {
    */
   @processable('random')
   random(...args) {
-    let options = args.reduce((a, b) => {
-      return a.concat(b);
-    }, []);
+    const options = args.reduce((a, b) => a.concat(b), []);
 
-    let chance = 1 / (options.length - 1);
+    const chance = 1 / (options.length - 1);
 
-    let luck = +Math.random().toFixed(1);
-    let index = Math.round(luck / chance);
+    const luck = +Math.random().toFixed(1);
+    const index = Math.round(luck / chance);
 
     return options[index];
   }
@@ -366,7 +391,7 @@ class Bot extends EventEmitter {
     if (!icon) {
       delete this.globals.icon_emoji;
       delete this.globals.icon_url;
-      return;
+      return this;
     }
 
     if (/:\w+:/.test(icon)) {
@@ -389,16 +414,16 @@ class Bot extends EventEmitter {
    */
   @processable('react')
   react(channel, timestamp, emoji, params = {}) {
-    let target = this.find(channel);
+    const target = this.find(channel);
 
-    let msg = {
+    const msg = {
       channel: target.id,
       timestamp, name: emoji, ...params
     };
 
-    return Modifiers.trigger('react', {...msg, ...params}).then(() => {
-      return this.call('reactions.add', msg);
-    });
+    return Modifiers.trigger('react', { ...msg, ...params }).then(() =>
+      this.call('reactions.add', msg)
+    );
   }
 
   /**
@@ -418,25 +443,25 @@ class Bot extends EventEmitter {
         ...params
       }));
 
-      let reply = await this.waitForReply(id - 1);
+      const reply = await this.waitForReply(id - 1);
       return { ...params, ...reply };
     }
 
-    let api = this._api || API; // this.api is used in tests
+    const api = this._api || API; // this.api is used in tests
 
     return new Promise((resolve, reject) => {
-     unirest.get(api + method)
+      unirest.get(api + method)
             .send(JSON.stringify(params))
-            .headers({'Accept': 'application/json'})
+            .headers({ Accept: 'application/json' })
             .query(params)
-            .query({token: this.config.token})
+            .query({ token: this.config.token })
             .end(response => {
               /* istanbul ignore next */
               if (response.statusType === 1) resolve(response.body);
               /* istanbul ignore next */
               else reject(response.body);
-            })
-    })
+            });
+    });
   }
 
   /**
@@ -445,20 +470,20 @@ class Bot extends EventEmitter {
    * @return {Promise}
    */
   @processable('waitForReply')
-  waitForReply(id) {
+  waitForReply(messageId) {
     return new Promise((resolve, reject) => {
       this.on('raw_message', function listener(message) {
-        if (message.reply_to === id) {
+        if (message.reply_to === messageId) {
           this.removeListener('raw_message', listener);
 
           /* istanbul ignore if */
-          if (typeof message.ok == 'undefined') return resolve(message)
+          if (typeof message.ok === 'undefined') return resolve(message);
           if (message.ok) return resolve(message);
 
           return reject(message);
         }
-      })
-    })
+      });
+    });
   }
 
   /**
@@ -471,38 +496,11 @@ class Bot extends EventEmitter {
     const STARTINGS = ['U', 'C', 'G', 'D'];
     if (string.toUpperCase() === string && string[1] === '0' &&
         STARTINGS.indexOf(string[0]) > -1) {
-          return 'ID'
-        }
+      return 'ID';
+    }
 
     return 'NAME';
   }
 }
 
 export default Bot;
-
-/**
- * A set of methods which are set on message objects before emitting events.
- * These methods are simpler forms of bot methods which prefill the message
- * parameters
- * @param  {Bot}    bot bot instance, used as context when binding functions
- * @param  {Object} msg message object, used to prefill the methods
- * @return {Object}
- */
-export function messageMethods(bot) {
-  return {
-    reply(...args) { return bot.sendMessage.call(bot, this.channel, ...args) },
-    react(...args) { return bot.react.call(bot, this.channel, this.ts, ...args) },
-    update(...args) { return bot.updateMessage.call(bot, this.channel, this.ts, ...args) },
-    delete(...args) { return bot.deleteMessage.call(bot, this.channel, this.ts, ...args) },
-    on(event, listener) {
-      bot.messageListeners.push({ event, listener, ts: this.ts, channel: this.channel });
-    },
-    off(event, listener) {
-      let index = bot.messageListeners.findIndex(a =>
-        a.event === event && a.listener === listener
-      );
-
-      bot.messageListeners.splice(index, 1);
-    }
-  }
-}
