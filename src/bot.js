@@ -60,6 +60,8 @@ class Bot extends EventEmitter {
 
     this.messageListeners = [];
 
+    this.setMaxListeners(config.maxListeners || 20);
+
     /* istanbul ignore if */
     if (!manual) {
       // Send a request and fetch Real-time Messaging API's websocket server
