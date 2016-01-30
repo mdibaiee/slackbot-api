@@ -11,6 +11,19 @@ const START_URI = 'https://slack.com/api/rtm.start';
 
 let id = 0;
 
+const fullExec = (regex, string) => {
+  let next = regex.exec(string);
+  let match = [];
+
+  do {
+    match = match.concat(next.slice(1));
+
+    next = regex.exec(string);
+  } while (next && next.length > 1);
+
+  return match;
+};
+
 /**
  * A set of methods which are set on message objects before emitting events.
  * These methods are simpler forms of bot methods which prefill the message
@@ -151,8 +164,11 @@ class Bot extends EventEmitter {
         if ((text && regex.test(text)) || (ascii && regex.test(ascii))) {
           const msg = { ...message, ascii }; // clone
 
-          msg.match = text.match(regex);
-          msg.asciiMatch = ascii.match(regex);
+          console.log(regex, text, ascii);
+          console.log(fullExec(regex, text));
+          msg.match = fullExec(regex, text);
+          msg.asciiMatch = fullExec(regex, ascii);
+          console.log(msg);
 
           Modifiers.trigger('hear', { ...msg, ...params }).then(() =>
             listener(msg)
