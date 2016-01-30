@@ -12,14 +12,16 @@ const START_URI = 'https://slack.com/api/rtm.start';
 let id = 0;
 
 const fullExec = (regex, string) => {
+  if (!regex.global) return regex.exec(string);
+
   let next = regex.exec(string);
   let match = [];
 
-  do {
+  while (next) {
     match = match.concat(next.slice(1));
 
     next = regex.exec(string);
-  } while (next && next.length > 1);
+  }
 
   return match;
 };
@@ -164,11 +166,8 @@ class Bot extends EventEmitter {
         if ((text && regex.test(text)) || (ascii && regex.test(ascii))) {
           const msg = { ...message, ascii }; // clone
 
-          console.log(regex, text, ascii);
-          console.log(fullExec(regex, text));
           msg.match = fullExec(regex, text);
           msg.asciiMatch = fullExec(regex, ascii);
-          console.log(msg);
 
           Modifiers.trigger('hear', { ...msg, ...params }).then(() =>
             listener(msg)
