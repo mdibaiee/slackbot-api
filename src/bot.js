@@ -150,10 +150,9 @@ class Bot extends EventEmitter {
 
         if ((text && regex.test(text)) || (ascii && regex.test(ascii))) {
           const msg = { ...message, ascii }; // clone
-          msg.match = regex.exec(text);
-          msg.asciiMatch = regex.exec(ascii);
-          if (msg.match) msg.match.splice(0, 1);
-          if (msg.asciiMatch) msg.asciiMatch.splice(0, 1);
+
+          msg.match = text.match(regex);
+          msg.asciiMatch = ascii.match(regex);
 
           Modifiers.trigger('hear', { ...msg, ...params }).then(() =>
             listener(msg)
