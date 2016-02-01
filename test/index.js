@@ -96,6 +96,69 @@ describe('Bot', function test() {
 
       done();
     });
+
+    it('should provide preformatted version of @mentions', done => {
+      ws.on('connection', socket => {
+        socket.on('message', () => {
+          socket.send(JSON.stringify({
+            type: 'message',
+            channel: GROUPID,
+            text: `<@${USERID}>`
+          }));
+        });
+      });
+
+      bot.on('open', () => {
+        bot.hear(message => {
+          message.preformatted.should.equal(`@${USERNAME}`);
+
+          done();
+        });
+        bot.sendMessage(GROUP, 'x');
+      });
+    });
+
+    it('should provide preformatted version of #channels', done => {
+      ws.on('connection', socket => {
+        socket.on('message', () => {
+          socket.send(JSON.stringify({
+            type: 'message',
+            channel: GROUPID,
+            text: `<#${GROUPID}>`
+          }));
+        });
+      });
+
+      bot.on('open', () => {
+        bot.hear(message => {
+          message.preformatted.should.equal(`#${GROUP}`);
+
+          done();
+        });
+        bot.sendMessage(GROUP, 'x');
+      });
+    });
+
+    it('should provide preformatted version of <http://urls>', done => {
+      ws.on('connection', socket => {
+        socket.on('message', () => {
+          socket.send(JSON.stringify({
+            type: 'message',
+            channel: GROUPID,
+            text: `<http://test.com>`
+          }));
+        });
+      });
+
+      bot.on('open', () => {
+        bot.hear(message => {
+          message.preformatted.should.equal(`http://test.com`);
+
+          done();
+        });
+        bot.sendMessage(GROUP, 'x');
+      });
+    });
   });
 
   describe('listen', () => {

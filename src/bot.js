@@ -155,10 +155,16 @@ class Bot extends EventEmitter {
 
       if (!text) return;
 
+      // preformat the text
+      const preformatted = message.text
+        .replace(/&gt;/g, '>')
+        .replace(/&lt;/g, '<')
+        .replace(/<@([^>]+)>/g, (a, user) => `@${this.find(user).name}`)
+        .replace(/<#([^>]+)>/g, (a, channel) => `#${this.find(channel).name}`)
+        .replace(/<([^>]+)>/g, (a, url) => url);
+
       // don't include bot name in regex test
-      text = text.replace(NAME, '').trim();
-      // un-format the text
-      text = text.replace(/&gt;/g, '>').replace(/&lt;/g, '<');
+      text = preformatted.replace(NAME, '');
 
       ascii = foldToAscii(text);
 
@@ -168,7 +174,7 @@ class Bot extends EventEmitter {
         }
 
         if ((text && regex.test(text)) || (ascii && regex.test(ascii))) {
-          const msg = { ...message, ascii }; // clone
+          const msg = { ...message, ascii, preformatted }; // clone
 
           regex.lastIndex = 0;
           msg.match = fullExec(regex, text);
@@ -255,6 +261,12 @@ class Bot extends EventEmitter {
    */
   @processable('hear')
   hear(regex, listener, params = {}) {
+    if (typeof regex === 'function') {
+      listener = regex;
+      params = listener;
+      regex = /./;
+    }
+
     this.listeners.push({ regex, listener, params });
 
     return this;
@@ -272,10 +284,6 @@ class Bot extends EventEmitter {
   @processable('listen')
   listen(regex, listener, params = {}) {
     params.mention = true;
-
-    if (typeof regex === 'function') {
-      return this.hear(/./, regex, listener || {});
-    }
 
     return this.hear(regex, listener, params);
   }
@@ -516,7 +524,7 @@ class Bot extends EventEmitter {
   @processable('type')
   type(string) {
     const STARTINGS = ['U', 'C', 'G', 'D'];
-    if (string.toUpperCase() === string && string[1] === '0' &&
+    if (string.toUpperCase() === string &&
         STARTINGS.indexOf(string[0]) > -1) {
       return 'ID';
     }
