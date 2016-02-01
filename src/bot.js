@@ -72,7 +72,9 @@ class Bot extends EventEmitter {
 
     this.modifiers = modifiers;
 
-    this.globals = {};
+    this.globals = {
+      websocket: true
+    };
 
     this.listeners = [];
 
@@ -332,8 +334,9 @@ class Bot extends EventEmitter {
       text, ...options
     };
 
+    const method = msg.websocket ? 'message' : 'chat.postMessage';
     return Modifiers.trigger('sendMessage', { ...msg, ...params }).then(() =>
-      this.call('message', msg, true)
+      this.call(method, msg, msg.websocket)
     );
   }
 

@@ -375,6 +375,16 @@ describe('Bot', function test() {
         done();
       });
     });
+
+    it('should be able to send message through chat.postMessage instead of ws', done => {
+      app.get('/chat.postMessage', () => done());
+
+      bot.on('open', () => {
+        bot.sendMessage(GROUP, 'test', {
+          websocket: false
+        });
+      });
+    });
   });
 
   describe('message events', () => {
