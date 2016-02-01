@@ -16,8 +16,11 @@ const fullExec = (regex, string) => {
 
   let next = regex.exec(string);
   let match = [];
+  let lastIndex = 0;
 
-  while (next) {
+  while (next && next.lastIndex !== lastIndex) {
+    lastIndex = next.lastIndex;
+
     match = match.concat(next.slice(1));
 
     next = regex.exec(string);
@@ -154,6 +157,7 @@ class Bot extends EventEmitter {
 
       // don't include bot name in regex test
       text = text.replace(NAME, '').trim();
+      // un-format the text
       text = text.replace(/&gt;/g, '>').replace(/&lt;/g, '<');
 
       ascii = foldToAscii(text);
