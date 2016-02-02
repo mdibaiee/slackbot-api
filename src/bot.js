@@ -11,15 +11,15 @@ const START_URI = 'https://slack.com/api/rtm.start';
 
 let id = 0;
 
-const fullExec = (regex, string) => {
+export const fullExec = (regex, string) => {
   if (!regex.global) return regex.exec(string);
 
   let next = regex.exec(string);
   let match = [];
-  let lastIndex = 0;
+  let lastIndex = -1;
 
-  while (next && next.lastIndex !== lastIndex) {
-    lastIndex = next.lastIndex;
+  while (next && regex.lastIndex !== lastIndex) {
+    lastIndex = regex.lastIndex;
 
     match = match.concat(next.slice(1));
 
@@ -300,27 +300,36 @@ class Bot extends EventEmitter {
    *                                in case of errors
    */
   @processable('sendMessage')
-  sendMessage(channel, text, params = {}) {
+  async sendMessage(channel, text, params = {}) {
     if (Array.isArray(channel)) {
-      return Promise.all(channel.map(ch =>
-        this.sendMessage(ch, text, params)
-      ));
+      return await* channel.map(ch => this.sendMessage(ch, text, params));
     }
 
     const options = { ...this.globals, ...params };
     let target;
 
     // @username sends the message to the users' @slackbot channel
-    if (channel[0] === '@') target = channel;
-    else if (this.type(channel) === 'ID') target = channel;
-    else {
-      target = (this.find(channel) || {}).id;
+    if (channel[0] === '@') {
+      target = channel;
+      options.websocket = false;
+    } else if (this.type(channel) === 'ID') {
+      target = channel;
+    } else {
+      const ch = (this.find(channel) || {}).id;
 
       // sending to users
-      if (target && target[0] === 'U') {
-        target = (this.ims.find(im => im.user === target) || {}).id;
-      }
+      if (ch && ch[0] === 'U') {
+        let im = (this.ims.find(i => i.user === ch) || {}).id;
 
+        if (!im) {
+          im = await this.call('im.open', { user: ch });
+          target = im && im.channel ? im.channel.id : null;
+        } else {
+          target = im;
+        }
+      } else {
+        target = ch;
+      }
 
       if (!target) throw new Error(`Could not find channel ${channel}`);
     }

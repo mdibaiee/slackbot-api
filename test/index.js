@@ -1,6 +1,6 @@
 import 'mocha';
 import chai from 'chai';
-import Bot, { messageMethods } from '../src/bot';
+import Bot, { messageMethods, fullExec } from '../src/bot';
 import sinon from 'sinon';
 import WebSocket from 'ws';
 import express from 'express';
@@ -8,7 +8,7 @@ import express from 'express';
 chai.should();
 
 const DELAY = 10;
-const LONG_DELAY = 10000;
+const LONG_DELAY = 1000;
 
 const GROUP = 'test-bot';
 const GROUPID = 'G0123123';
@@ -17,6 +17,8 @@ const NAME = 'test';
 const USERNAME = 'user';
 const USERID = 'U123123';
 const IMID = 'D123123';
+const NOIMUSERID = 'U123124';
+const NOIMUSERNAME = 'user-no-im';
 
 describe('Bot', function test() {
   this.timeout(LONG_DELAY);
@@ -39,6 +41,9 @@ describe('Bot', function test() {
       users: [{
         name: USERNAME,
         id: USERID
+      }, {
+        name: NOIMUSERNAME,
+        id: NOIMUSERID
       }],
       ims: [{
         id: IMID,
@@ -264,6 +269,33 @@ describe('Bot', function test() {
       });
     });
 
+    it('should open an IM channel if one doesn\'t exist when sending message to users', done => {
+      ws.on('connection', socket => {
+        socket.on('message', message => {
+          const msg = JSON.parse(message);
+          msg.channel.should.equal(IMID);
+
+          done();
+        });
+      });
+
+      app.get('/im.open', (request, response) => {
+        request.query.user.should.equal(NOIMUSERID);
+
+        response.json({
+          channel: {
+            id: IMID
+          }
+        });
+
+        done();
+      });
+
+      bot.on('open', () => {
+        bot.sendMessage(NOIMUSERNAME, 'test');
+      });
+    });
+
     it('should not search for channel if an ID is provided', done => {
       // an ID that doesn't exist in `bot.all()`
       // if `sendMessage` tries to find the channel, it will throw an error
@@ -337,14 +369,11 @@ describe('Bot', function test() {
       });
     });
 
-    it('should send message to @usernames', done => {
-      ws.on('connection', socket => {
-        socket.on('message', message => {
-          const msg = JSON.parse(message);
+    it('should send message to @usernames directly, through HTTP', done => {
+      app.get('/chat.postMessage', request => {
+        request.query.channel.should.equal('@test');
 
-          msg.channel.should.equal('@test');
-          done();
-        });
+        done();
       });
 
       bot.on('open', () => {
@@ -370,9 +399,9 @@ describe('Bot', function test() {
     it('should throw error in case of unavailable channel', done => {
       bot.on('open', () => {
         const r = Math.random().toString();
-        bot.sendMessage.bind(bot, r, 'Hey').should.throw();
-
-        done();
+        bot.sendMessage(r, 'Hey').then(() => {
+          //
+        }, () => done());
       });
     });
 
@@ -549,7 +578,6 @@ describe('Bot', function test() {
 
         app.get('/reactions.remove', (request, response) => {
           const msg = request.query;
-          console.log(msg);
 
           response.json({ ok: true });
 
@@ -734,6 +762,31 @@ describe('Bot', function test() {
       bot.type(GROUPID).should.equal('ID');
 
       done();
+    });
+  });
+
+  describe('utilities', () => {
+    describe('fullExec', () => {
+      it('should match all instances of a group', done => {
+        const string = 'a b c d';
+        fullExec(/(\w+)/g, string).should.deep.equal(string.split(' '));
+
+        done();
+      });
+
+      it('should not crash/loop infinitely in case of a single match', done => {
+        const string = 'test';
+        fullExec(/(.*)/g, string).should.deep.equal([string]);
+
+        done();
+      });
+
+      it('should not crash/loop infinitely in case of non-global regex', done => {
+        const string = 'test';
+        fullExec(/.*/, string).should.deep.equal(/.*/.exec(string));
+
+        done();
+      });
     });
   });
 });
