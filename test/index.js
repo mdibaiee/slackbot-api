@@ -8,7 +8,7 @@ import express from 'express';
 chai.should();
 
 const DELAY = 10;
-const LONG_DELAY = 1000;
+const LONG_DELAY = 3000;
 
 const GROUP = 'test-bot';
 const GROUPID = 'G0123123';
@@ -54,7 +54,10 @@ describe('Bot', function test() {
         id: GROUPID
       }],
       self: {
-        name: NAME
+        name: NAME,
+        profile: {
+          image_original: ''
+        }
       }
     });
 

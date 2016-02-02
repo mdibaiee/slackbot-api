@@ -95,6 +95,7 @@ class Bot extends EventEmitter {
         delete data.ok;
         delete data.url;
         Object.assign(this, data);
+        Object.assign(this.self, this.find(this.self.id));
       });
     }
 
@@ -334,9 +335,19 @@ class Bot extends EventEmitter {
       if (!target) throw new Error(`Could not find channel ${channel}`);
     }
 
-    text = text.replace(/&/g, '&amp;')
-                .replace(/</, '&lt;')
-                .replace(/>/, '&gt;');
+    if (options.websocket) {
+      text = text.replace(/&/g, '&amp;')
+                 .replace(/</, '&lt;')
+                 .replace(/>/, '&gt;');
+    } else {
+      if (!options.icon_url && !options.icon_emoji) {
+        options.icon_url = this.self.profile.image_original;
+      }
+
+      if (!options.username) {
+        options.username = this.self.name;
+      }
+    }
 
     const msg = {
       channel: target,
@@ -344,7 +355,7 @@ class Bot extends EventEmitter {
     };
 
     const method = msg.websocket ? 'message' : 'chat.postMessage';
-    return Modifiers.trigger('sendMessage', { ...msg, ...params }).then(() =>
+    return Modifiers.trigger('sendMessage', { ...msg }).then(() =>
       this.call(method, msg, msg.websocket)
     );
   }
