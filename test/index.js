@@ -737,6 +737,27 @@ describe('Bot', function test() {
 
       msg.react('thumbsup');
     });
+
+    it('should reply to messages correctly', done => {
+      ws.on('connection', socket => {
+        socket.on('message', message => {
+          const msg = JSON.parse(message);
+
+          msg.channel.should.equal(GROUPID);
+          msg.text.should.equal('hi');
+
+          done();
+        });
+      });
+
+      bot.on('open', () => {
+        const msg = Object.assign({
+          channel: GROUPID
+        }, messageMethods(bot));
+
+        msg.reply('hi');
+      });
+    });
   });
 
   describe('all', () => {
@@ -765,6 +786,37 @@ describe('Bot', function test() {
       bot.type(GROUPID).should.equal('ID');
 
       done();
+    });
+  });
+
+  describe('ping', () => {
+    it('should send a ping message every `pingInterval`', done => {
+      const interval = 5;
+      bot = new Bot({
+        pingInterval: interval
+      }, true);
+
+      bot.connect('ws://127.0.0.1:9090');
+      bot._api = 'http://127.0.0.1:9091/';
+
+      let messageCounter = 0;
+      let intervalCounter = 0;
+
+      ws.on('connection', socket => {
+        socket.on('message', message => {
+          messageCounter++;
+
+          const msg = JSON.parse(message);
+          msg.type.should.equal('ping');
+
+          intervalCounter.should.equal(messageCounter);
+          if (intervalCounter === 2) done();
+        });
+      });
+
+      bot.on('open', () => {
+        setInterval(() => intervalCounter++, interval);
+      });
     });
   });
 

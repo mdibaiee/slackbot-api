@@ -8,6 +8,7 @@ import modifiers from './modifiers';
 
 const API = 'https://slack.com/api/';
 const START_URI = 'https://slack.com/api/rtm.start';
+const PING_INTERVAL = 20000;
 
 let id = 0;
 
@@ -81,6 +82,8 @@ class Bot extends EventEmitter {
     this.messageListeners = [];
 
     this.setMaxListeners(config.maxListeners || 20);
+
+    this.pingInterval = config.pingInterval || PING_INTERVAL;
 
     /* istanbul ignore if */
     if (!manual) {
@@ -189,6 +192,12 @@ class Bot extends EventEmitter {
           ).catch(console.error.bind(console));
         }
       }
+    });
+
+    this.on('open', () => {
+      setInterval(() => {
+        this.call('ping', {}, true);
+      }, this.pingInterval);
     });
   }
 

@@ -1,13 +1,13 @@
 {
   "name": "slackbot-api",
   "description": "Simple, consistent and customizable Slack bot API",
-  "version": "1.5.3",
+  "version": "1.5.5",
   "main": "build/index.js",
   "scripts": {
     "test": "mocha test --compilers js:babel/register,js:babel/polyfill -w",
     "test:single": "istanbul cover -x test _mocha -- test --compilers js:babel/register,js:babel/polyfill",
     "test:file": "mocha --compilers js:babel/register,js:babel/polyfill",
-    "check-coverage": "istanbul check-coverage --statements 90 --branches 90 --functions 90 --lines 90",
+    "check-coverage": "istanbul check-coverage --statements 90 --branches 85 --functions 90 --lines 90",
     "report-coverage": "cat ./coverage/lcov.info | codecov",
     "lint": "eslint src test"
   },
