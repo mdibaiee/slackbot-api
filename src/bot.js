@@ -196,6 +196,8 @@ class Bot extends EventEmitter {
    */
   @processable('connect')
   connect(url) {
+    if (!url) throw new Error('Error connecting to Slack.');
+
     this.ws = new WebSocket(url);
     const ws = this.ws;
 
