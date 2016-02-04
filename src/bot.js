@@ -141,26 +141,10 @@ class Bot extends EventEmitter {
     });
 
     this.on('message', message => {
-      if (message.subtype) return;
-
-      const NAME = new RegExp(`@?\\b${this.self.name}\\b:?`, 'i');
-      let mention;
-
-      // if channel name starts with D, it's a Direct message and
-      // doesn't require mentioning name explicitly
-      if (message.text && !message.channel.startsWith('D') &&
-         // check for bot's name or bot's id (mentioning @botname)
-         (!NAME.test(message.text) && !message.text.includes(this.self.id))) {
-        mention = false;
-      } else {
-        mention = true;
-      }
-
-      if (!message.text) return;
+      if (message.subtype || !message.text) return;
+      // should not listen on bots' messages
+      if (message.user && message.user.startsWith('B')) return;
       message.text = message.text.trim();
-
-      let { text } = message;
-      let ascii;
 
       // preformat the text
       const preformatted = message.text
@@ -170,10 +154,13 @@ class Bot extends EventEmitter {
         .replace(/<#([^>]+)>/g, (a, channel) => `#${this.find(channel).name}`)
         .replace(/<([^>]+)>/g, (a, url) => url);
 
-      // don't include bot name in regex test
-      text = preformatted.replace(NAME, '').trim();
+      const NAME = new RegExp(`@?\\b${this.self.name}\\b:?`, 'i');
 
-      ascii = foldToAscii(text);
+      const mention = NAME.test(message.text) || message.channel.startsWith('D');
+
+      // don't include bot name in regex test
+      const text = preformatted.replace(NAME, '').trim();
+      const ascii = foldToAscii(text);
 
       for (const { listener, regex, params } of this.listeners) {
         if (params.mention && !mention) {
