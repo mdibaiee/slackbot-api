@@ -143,7 +143,7 @@ class Bot extends EventEmitter {
     this.on('message', message => {
       if (message.subtype) return;
 
-      const NAME = new RegExp(`\\b${this.self.name}\\b`, 'i');
+      const NAME = new RegExp(`@?\\b${this.self.name}\\b:?`, 'i');
       let mention;
 
       // if channel name starts with D, it's a Direct message and
@@ -156,10 +156,11 @@ class Bot extends EventEmitter {
         mention = true;
       }
 
+      if (!message.text) return;
+      message.text = message.text.trim();
+
       let { text } = message;
       let ascii;
-
-      if (!text) return;
 
       // preformat the text
       const preformatted = message.text
@@ -170,7 +171,7 @@ class Bot extends EventEmitter {
         .replace(/<([^>]+)>/g, (a, url) => url);
 
       // don't include bot name in regex test
-      text = preformatted.replace(NAME, '');
+      text = preformatted.replace(NAME, '').trim();
 
       ascii = foldToAscii(text);
 
