@@ -503,7 +503,6 @@ class Bot extends EventEmitter {
 
     return new Promise((resolve, reject) => {
       unirest.get(api + method)
-            .send(JSON.stringify(params))
             .headers({ Accept: 'application/json' })
             .query(params)
             .query({ token: this.config.token })
