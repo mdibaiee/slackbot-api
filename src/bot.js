@@ -501,6 +501,16 @@ class Bot extends EventEmitter {
 
     const api = this._api || API; // this.api is used in tests
 
+    for (const key of Object.keys(params)) {
+      if (typeof params[key] === 'object') {
+        try {
+          params[key] = JSON.stringify(params[key]);
+        } catch (e) {
+          // nevermind
+        }
+      }
+    }
+
     return new Promise((resolve, reject) => {
       unirest.get(api + method)
             .headers({ Accept: 'application/json' })

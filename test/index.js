@@ -417,6 +417,23 @@ describe('Bot', function test() {
         });
       });
     });
+
+    it('should JSON.stringify object properties such as `attachments`', done => {
+      app.get('/chat.postMessage', request => {
+        const msg = JSON.parse(request.query.attachments);
+        msg.length.should.equal(1);
+        msg[0].text.should.equal('folan');
+
+        done();
+      });
+
+      bot.on('open', () => {
+        bot.sendMessage(GROUP, 'test', {
+          websocket: false,
+          attachments: [{ text: 'folan' }]
+        });
+      });
+    });
   });
 
   describe('message events', () => {
