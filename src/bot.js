@@ -148,11 +148,12 @@ class Bot extends EventEmitter {
 
       // preformat the text
       const preformatted = message.text
-        .replace(/&gt;/g, '>')
-        .replace(/&lt;/g, '<')
         .replace(/<@([^>]+)>/g, (a, user) => `@${this.find(user).name}`)
         .replace(/<#([^>]+)>/g, (a, channel) => `#${this.find(channel).name}`)
-        .replace(/<([^>]+)>/g, (a, url) => url);
+        .replace(/<((?:http|https):\/\/[^>]+)>/g, (a, url) => url)
+        .replace(/&gt;/g, '>')
+        .replace(/&lt;/g, '<')
+        .replace(/&amp;/g, '&');
 
       const NAME = new RegExp(`@?\\b${this.self.name}\\b:?`, 'i');
 

@@ -105,7 +105,28 @@ describe('Bot', function test() {
       done();
     });
 
-    it('should provide preformatted version of @mentions', done => {
+    it('should provide preformatted <, > and &', done => {
+      ws.on('connection', socket => {
+        socket.on('message', () => {
+          socket.send(JSON.stringify({
+            type: 'message',
+            channel: GROUPID,
+            text: `< test > &`
+          }));
+        });
+      });
+
+      bot.on('open', () => {
+        bot.hear(message => {
+          message.preformatted.should.equal('< test > &');
+
+          done();
+        });
+        bot.sendMessage(GROUP, 'x');
+      });
+    });
+
+    it('should provide preformatted @mentions', done => {
       ws.on('connection', socket => {
         socket.on('message', () => {
           socket.send(JSON.stringify({
@@ -126,7 +147,7 @@ describe('Bot', function test() {
       });
     });
 
-    it('should provide preformatted version of #channels', done => {
+    it('should provide preformatted #channels', done => {
       ws.on('connection', socket => {
         socket.on('message', () => {
           socket.send(JSON.stringify({
@@ -147,7 +168,7 @@ describe('Bot', function test() {
       });
     });
 
-    it('should provide preformatted version of <http://urls>', done => {
+    it('should provide preformatted <http://urls>', done => {
       ws.on('connection', socket => {
         socket.on('message', () => {
           socket.send(JSON.stringify({
