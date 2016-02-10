@@ -157,7 +157,7 @@ class Bot extends EventEmitter {
 
       const NAME = new RegExp(`@?\\b${this.self.name}\\b:?`, 'i');
 
-      const mention = NAME.test(message.text) || message.channel.startsWith('D');
+      const mention = message.channel.startsWith('D') || NAME.test(preformatted);
 
       // don't include bot name in regex test
       const text = preformatted.replace(NAME, '').trim();
