@@ -163,6 +163,9 @@ class Bot extends EventEmitter {
       const text = preformatted.replace(NAME, '').trim();
       const ascii = foldToAscii(text);
 
+      message.preformatted = preformatted;
+      message.mention = mention;
+
       let hasListener = false;
       for (const { listener, regex, params } of this.listeners) {
         if (params.mention && !mention) {
@@ -170,7 +173,7 @@ class Bot extends EventEmitter {
         }
 
         if ((text && regex.test(text)) || (ascii && regex.test(ascii))) {
-          const msg = { ...message, ascii, preformatted }; // clone
+          const msg = { ...message, ascii }; // clone
 
           regex.lastIndex = 0;
           msg.match = fullExec(regex, text);
