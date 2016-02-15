@@ -178,7 +178,7 @@ class Bot extends EventEmitter {
           msg.asciiMatch = fullExec(regex, ascii);
 
           await Modifiers.trigger('hear', { ...msg, ...params }).then(() => { // eslint-disable-line
-            hasListener = true;
+            if (!params.matchAll) hasListener = true;
             return listener(msg);
           }).catch(console.error.bind(console));
         }
@@ -274,6 +274,7 @@ class Bot extends EventEmitter {
       listener = regex;
       params = listener;
       regex = /./;
+      params.matchAll = true;
     }
 
     this.listeners.push({ regex, listener, params });

@@ -191,6 +191,8 @@ describe('Bot', function test() {
 
     it('should emit `notfound` event in case of no listener matching a message', done => {
       bot.hear(/yes/i, () => 0);
+      // listeners matching all regexps should not be counted in
+      bot.hear(() => 0);
 
       const spy = sinon.spy();
       bot.on('notfound', spy);
