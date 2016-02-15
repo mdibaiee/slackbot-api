@@ -190,19 +190,27 @@ describe('Bot', function test() {
     });
 
     it('should emit `notfound` event in case of no listener matching a message', done => {
-      bot.hear(/test/, () => 0);
+      bot.hear(/yes/i, () => 0);
 
-      bot.on('notfound', message => {
-        message.text.should.equal('no');
-
-        done();
-      });
+      const spy = sinon.spy();
+      bot.on('notfound', spy);
 
       const listener = bot._events.message;
 
       listener({
         text: 'no',
         channel: GROUPID
+      });
+
+      listener({
+        text: 'yes',
+        channel: GROUPID
+      });
+
+      setImmediate(() => {
+        spy.calledOnce.should.equal(true);
+
+        done();
       });
     });
   });
@@ -216,7 +224,7 @@ describe('Bot', function test() {
         cb.calledOnce.should.equal(true);
 
         done();
-      }, DELAY);
+      });
 
       const listener = bot._events.message;
       listener({

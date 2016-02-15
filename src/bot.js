@@ -140,7 +140,7 @@ class Bot extends EventEmitter {
       removed.forEach(({ listener }) => listener(message));
     });
 
-    this.on('message', message => {
+    this.on('message', async message => {
       if (message.subtype || !message.text) return;
       // should not listen on bots' messages
       if (message.user && message.user.startsWith('B')) return;
@@ -163,7 +163,7 @@ class Bot extends EventEmitter {
       const text = preformatted.replace(NAME, '').trim();
       const ascii = foldToAscii(text);
 
-      let hadListener = false;
+      let hasListener = false;
       for (const { listener, regex, params } of this.listeners) {
         if (params.mention && !mention) {
           continue;
@@ -177,15 +177,14 @@ class Bot extends EventEmitter {
           regex.lastIndex = 0;
           msg.asciiMatch = fullExec(regex, ascii);
 
-          Modifiers.trigger('hear', { ...msg, ...params }).then(() => { // eslint-disable-line
-            hadListener = true;
+          await Modifiers.trigger('hear', { ...msg, ...params }).then(() => { // eslint-disable-line
+            hasListener = true;
             return listener(msg);
           }).catch(console.error.bind(console));
         }
       }
 
-      if (!hadListener) {
-        console.log('notfound', message, this.emit);
+      if (!hasListener) {
         this.emit('notfound', message);
       }
     });
