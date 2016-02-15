@@ -163,6 +163,7 @@ class Bot extends EventEmitter {
       const text = preformatted.replace(NAME, '').trim();
       const ascii = foldToAscii(text);
 
+      let hadListener = false;
       for (const { listener, regex, params } of this.listeners) {
         if (params.mention && !mention) {
           continue;
@@ -176,10 +177,16 @@ class Bot extends EventEmitter {
           regex.lastIndex = 0;
           msg.asciiMatch = fullExec(regex, ascii);
 
-          Modifiers.trigger('hear', { ...msg, ...params }).then(() =>
-            listener(msg)
-          ).catch(console.error.bind(console));
+          Modifiers.trigger('hear', { ...msg, ...params }).then(() => { // eslint-disable-line
+            hadListener = true;
+            return listener(msg);
+          }).catch(console.error.bind(console));
         }
+      }
+
+      if (!hadListener) {
+        console.log('notfound', message, this.emit);
+        this.emit('notfound', message);
       }
     });
 

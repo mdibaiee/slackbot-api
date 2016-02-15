@@ -188,6 +188,23 @@ describe('Bot', function test() {
         bot.sendMessage(GROUP, 'x');
       });
     });
+
+    it('should emit `notfound` event in case of no listener matching a message', done => {
+      bot.hear(/test/, () => 0);
+
+      bot.on('notfound', message => {
+        message.text.should.equal('no');
+
+        done();
+      });
+
+      const listener = bot._events.message;
+
+      listener({
+        text: 'no',
+        channel: GROUPID
+      });
+    });
   });
 
   describe('listen', () => {
