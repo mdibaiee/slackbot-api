@@ -1,7 +1,6 @@
 import Modifiers, { processable } from './modifiers';
 import EventEmitter from 'events';
 import WebSocket from 'ws';
-import querystring from 'querystring';
 import unirest from 'unirest';
 import { fold as foldToAscii } from 'fold-to-ascii';
 import modifiers from './modifiers';
@@ -90,19 +89,7 @@ class Bot extends EventEmitter {
 
     /* istanbul ignore if */
     if (!manual) {
-      // Send a request and fetch Real-time Messaging API's websocket server
-      const options = querystring.stringify(config);
-      unirest.get(`${START_URI}?${options}`)
-      .headers({ Accept: 'application/json' })
-      .end(response => {
-        const data = response.body;
-
-        this.connect(data.url);
-        delete data.ok;
-        delete data.url;
-        Object.assign(this, data);
-        Object.assign(this.self, this.find(this.self.id));
-      });
+      this.connect();
     }
 
     this.on('message_changed', message => {
@@ -208,8 +195,29 @@ class Bot extends EventEmitter {
    * @return {Promise}    A promise which resolves upon `open`
    */
   @processable('connect')
-  connect(url) {
-    if (!url) throw new Error('Error connecting to Slack.');
+  async connect(url) {
+    if (!url) {
+      // Send a request and fetch Real-time Messaging API's websocket server
+      await (new Promise((resolve, reject) => {
+        unirest.get(`${START_URI}?token=${this.config.token}`)
+        .headers({ Accept: 'application/json' })
+        .end(response => {
+          const data = response.body;
+
+          if (!data.url || response.error) {
+            return reject(new Error('Error connecting to Slack.'));
+          }
+
+          url = data.url;
+          delete data.ok;
+          delete data.url;
+          Object.assign(this, data);
+          Object.assign(this.self, this.find(this.self.id));
+
+          resolve();
+        });
+      }));
+    }
 
     this.ws = new WebSocket(url);
     const ws = this.ws;
@@ -221,6 +229,12 @@ class Bot extends EventEmitter {
 
         ws.on('message', message => {
           const msg = JSON.parse(message);
+
+          if (msg.type === 'error') {
+            this.connect();
+            return;
+          }
+
           const methods = messageMethods(this);
           Object.assign(msg, methods);
 
