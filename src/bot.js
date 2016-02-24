@@ -5,6 +5,7 @@ import querystring from 'querystring';
 import unirest from 'unirest';
 import { fold as foldToAscii } from 'fold-to-ascii';
 import modifiers from './modifiers';
+import Attachments from './attachments';
 
 const API = 'https://slack.com/api/';
 const START_URI = 'https://slack.com/api/rtm.start';
@@ -72,6 +73,8 @@ class Bot extends EventEmitter {
     this.config = config;
 
     this.modifiers = modifiers;
+
+    this.Attachments = Attachments;
 
     this.globals = {
       websocket: true
