@@ -321,15 +321,6 @@ describe('Bot', function test() {
     });
 
     it('should open an IM channel if one doesn\'t exist when sending message to users', done => {
-      ws.on('connection', socket => {
-        socket.on('message', message => {
-          const msg = JSON.parse(message);
-          msg.channel.should.equal(IMID);
-
-          done();
-        });
-      });
-
       app.get('/im.open', (request, response) => {
         request.query.user.should.equal(NOIMUSERID);
 
