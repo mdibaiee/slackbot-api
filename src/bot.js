@@ -427,7 +427,7 @@ class Bot extends EventEmitter {
       text, ...params
     };
 
-    return Modifiers.trigger('updateMessage', { ...msg, ...params }).then(() =>
+    return Modifiers.trigger('updateMessage', { ...msg }).then(() =>
       this.call('chat.update', msg)
     );
   }
@@ -546,7 +546,7 @@ class Bot extends EventEmitter {
             .query({ token: this.config.token })
             .end(response => {
               /* istanbul ignore next */
-              if (response.statusType < 4) resolve(response.body);
+              if (response.statusType < 4 && response.body.ok) resolve(response.body);
               /* istanbul ignore next */
               else reject(response.body);
             });
