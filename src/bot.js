@@ -130,6 +130,14 @@ class Bot extends EventEmitter {
       removed.forEach(({ listener }) => listener(message));
     });
 
+    ['channel_created', 'group_joined', 'im_created'].forEach(ev =>
+      this.on(ev, message => {
+        const model = ev.split('_')[0];
+        const key = `${model}s`;
+        this[key].push(message.channel);
+      })
+    );
+
     this.on('message', async message => {
       if (message.subtype || !message.text) return;
       // should not listen on bots' messages
