@@ -1,7 +1,7 @@
 {
   "name": "slackbot-api",
   "description": "Simple, consistent and customizable Slack bot API",
-  "version": "1.7.6",
+  "version": "1.7.7",
   "main": "build/index.js",
   "scripts": {
     "test": "mocha test --compilers js:babel/register,js:babel/polyfill -w",
@@ -41,7 +41,6 @@
     "bluebird": "2.10.2",
     "fold-to-ascii": "2.0.2",
     "grunt-babel": "5.0.3",
-    "redis": "2.2.5",
     "unirest": "0.4.2",
     "ws": "0.8.0"
   },
@@ -58,7 +57,6 @@
     "grunt-contrib-watch": "0.6.1",
     "istanbul": "^0.3.22",
     "mocha": "^2.3.3",
-    "semantic-release": "^4.3.5",
     "sinon": "1.17.2"
   }
 }
