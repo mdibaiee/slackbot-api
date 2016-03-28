@@ -15,5 +15,3 @@ sudo: false
 cache:
   directories:
     - node_modules
-services:
-  - redis-server
