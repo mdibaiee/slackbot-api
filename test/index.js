@@ -899,5 +899,63 @@ describe('Bot', function test() {
         done();
       });
     });
+
+    describe('inject', () => {
+      it('should emit the message_deleted event correctly', done => {
+        bot.on('message_deleted', data => {
+          data.ts.should.equal('something');
+          data.deleted_ts.should.be.ok;
+          data.hidden.should.be.ok;
+        });
+        bot.on('message', data => {
+          data.subtype.should.equal('message_deleted');
+          data.ts.should.equal('something');
+          done();
+        });
+        bot.inject('message_deleted', {
+          ts: 'something'
+        });
+      });
+
+      it('should emit the message_changed event correctly', done => {
+        bot.on('message_changed', data => {
+          data.ts.should.equal('something');
+          data.message.should.be.ok;
+          data.hidden.should.be.ok;
+        });
+        bot.on('message', data => {
+          data.subtype.should.equal('message_changed');
+          data.ts.should.equal('something');
+          done();
+        });
+        bot.inject('message_changed', {
+          ts: 'something'
+        });
+      });
+
+      it('should emit the message event correctly', done => {
+        bot.on('message', data => {
+          data.ts.should.equal('something');
+          done();
+        });
+        bot.inject('message', {
+          ts: 'something'
+        });
+      });
+
+      it('should emit the message subtype events correctly', done => {
+        bot.on('me_message', data => {
+          data.ts.should.equal('something');
+        });
+        bot.on('message', data => {
+          data.subtype.should.equal('me_message');
+          data.ts.should.equal('something');
+          done();
+        });
+        bot.inject('me_message', {
+          ts: 'something'
+        });
+      });
+    });
   });
 });

@@ -2,9 +2,9 @@ import Modifiers, { processable } from './modifiers';
 import EventEmitter from 'events';
 import WebSocket from 'ws';
 import unirest from 'unirest';
-import { fold as foldToAscii } from 'fold-to-ascii';
 import modifiers from './modifiers';
 import Attachments from './attachments';
+import _ from 'lodash';
 
 const API = 'https://slack.com/api/';
 const START_URI = 'https://slack.com/api/rtm.start';
@@ -159,7 +159,7 @@ class Bot extends EventEmitter {
 
       // don't include bot name in regex test
       const text = preformatted.replace(NAME, '').trim();
-      const ascii = foldToAscii(text);
+      const ascii = _.deburr(text);
 
       message.preformatted = preformatted;
       message.mention = mention;
@@ -194,6 +194,96 @@ class Bot extends EventEmitter {
       setInterval(() => {
         this.call('ping', {}, true);
       }, this.pingInterval);
+    });
+  }
+
+  /**
+   * Inject a request, used for testing
+   * The method has some good defaults to reduce the overhead of specifying all properties
+   * of an event data
+   * @param  {String} event the event to trigger
+   * @param  {Object}       data  the data to emit the event with
+   */
+  inject(events, data) {
+    data = _.defaults(data, {
+      user: 'U123456',
+      ts: '1355517523.000005'
+    });
+
+    switch (events) {
+      case 'message':
+        data = _.defaults(data, {
+          type: 'message',
+          channel: 'C123456',
+          text: 'Hello World'
+        });
+        break;
+
+      case 'bot_message':
+      case 'me_message':
+      case 'channel_join':
+      case 'channel_leave':
+      case 'channel_topic':
+      case 'channel_purpose':
+      case 'channel_name':
+      case 'channel_archive':
+      case 'channel_unarchive':
+      case 'group_join':
+      case 'group_leave':
+      case 'group_topic':
+      case 'group_purpose':
+      case 'group_name':
+      case 'group_archive':
+      case 'group_unarchive':
+      case 'file_share':
+      case 'file_comment':
+      case 'file_mention':
+      case 'pinned_item':
+      case 'unpinned_item':
+        data = _.defaults(data, {
+          type: 'message',
+          subtype: events,
+          channel: 'C123456',
+          text: 'Hello World',
+        });
+        events = [events, 'message'];
+        break;
+
+      case 'message_deleted':
+        data = _.defaults(data, {
+          type: 'message',
+          subtype: events,
+          channel: 'C123456',
+          hidden: true,
+          deleted_ts: '1355517523.000005'
+        });
+        events = [events, 'message'];
+        break;
+
+      case 'message_changed':
+        data = _.defaults(data, {
+          type: 'message',
+          subtype: events,
+          channe: 'C123456',
+          hidden: true,
+          message: {
+            type: 'message',
+            user: 'U123456',
+            text: 'Hello World',
+            ts: '1355517523.000002',
+            edited: {
+              user: 'U123456',
+              ts: '1355517523.000005'
+            }
+          }
+        });
+        events = [events, 'message'];
+        break;
+      default: break;
+    }
+
+    (Array.isArray(events) ? events : [events]).forEach(ev => {
+      this.emit(ev, data);
     });
   }
 
