@@ -1,7 +1,7 @@
 {
   "name": "slackbot-api",
   "description": "Simple, consistent and customizable Slack bot API",
-  "version": "1.8.0",
+  "version": "1.8.1",
   "main": "build/index.js",
   "scripts": {
     "test": "mocha test --compilers js:babel/register,js:babel/polyfill -w",
@@ -23,7 +23,7 @@
   },
   "config": {
     "ghooks": {
-      "pre-commit": "grunt && npm run test:single && npm run check-coverage && npm run lint"
+      "pre-commit": "npm run lint && grunt && npm run test:single && npm run check-coverage"
     }
   },
   "files": [

@@ -283,6 +283,16 @@ class Bot extends EventEmitter {
     }
 
     (Array.isArray(events) ? events : [events]).forEach(ev => {
+      const methods = messageMethods(this);
+      Object.assign(data, methods);
+
+      if (data.message) {
+        data.message.channel = data.channel;
+
+        const subMethods = messageMethods(this);
+        Object.assign(data.message, subMethods);
+      }
+
       this.emit(ev, data);
     });
   }
@@ -687,6 +697,13 @@ class Bot extends EventEmitter {
     }
 
     return 'NAME';
+  }
+
+  /**
+   * Stops the HTTP and WebSocket server and cleans up stuff
+   */
+  destroy() {
+    if (this.ws && this.ws.stop) this.ws.stop();
   }
 }
 
