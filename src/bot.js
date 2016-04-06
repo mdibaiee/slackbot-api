@@ -155,7 +155,7 @@ class Bot extends EventEmitter {
 
       const NAME = new RegExp(`@?\\b${this.self.name}\\b:?`, 'i');
 
-      const mention = message.channel.startsWith('D') || NAME.test(preformatted);
+      const mention = message.channel.startsWith('D') || NAME.test(preformatted) || message.mention;
 
       // don't include bot name in regex test
       const text = preformatted.replace(NAME, '').trim();
@@ -178,10 +178,14 @@ class Bot extends EventEmitter {
           regex.lastIndex = 0;
           msg.asciiMatch = fullExec(regex, ascii);
 
-          await Modifiers.trigger('hear', { ...msg, ...params }).then(() => { // eslint-disable-line
-            if (!params.matchAll) hasListener = true;
-            return listener(msg);
-          }).catch(console.error.bind(console));
+          try {
+            await Modifiers.trigger('hear', { ...msg, ...params }).then(() => { // eslint-disable-line
+              if (!params.matchAll) hasListener = true;
+              return listener(msg);
+            });
+          } catch (e) {
+            if (this.config.debug) console.error('Modifier `hear` interrupted: ', e);
+          }
         }
       }
 
