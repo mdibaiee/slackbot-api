@@ -2,7 +2,6 @@ import Modifiers, { processable } from './modifiers';
 import EventEmitter from 'events';
 import WebSocket from 'ws';
 import unirest from 'unirest';
-import modifiers from './modifiers';
 import Attachments from './attachments';
 import _ from 'lodash';
 
@@ -71,7 +70,7 @@ class Bot extends EventEmitter {
 
     this.config = config;
 
-    this.modifiers = modifiers;
+    this.modifiers = Modifiers;
 
     this.Attachments = Attachments;
 
@@ -442,7 +441,7 @@ class Bot extends EventEmitter {
   @processable('sendMessage')
   async sendMessage(channel, text, params = {}) {
     if (Array.isArray(channel)) {
-      return await* channel.map(ch => this.sendMessage(ch, text, params));
+      return Promise.all(channel.map(ch => this.sendMessage(ch, text, params)));
     }
 
     const options = { ...this.globals, ...params };
