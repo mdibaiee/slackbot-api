@@ -498,6 +498,31 @@ class Bot extends EventEmitter {
     );
   }
 
+
+  /**
+   * Send a message with the specified user's avatar and name
+   * There will still be a `bot` label near the name to indicate the message
+   * is not originally from the user
+   * @param  {String} user     username or id
+   * @param  {String} channel  see `sendMessage`'s channel parameter
+   * @param  {String} text     see `sendMessage`'s text parameter
+   * @param  {Object} params   see `sendMessage`'s params parameter
+   * @return {Promise}              A promise which resolves upon succes and fails
+   *                                in case of errors
+   */
+  @processable('sendAsUser')
+  sendAsUser(user, channel, text, params = {}) {
+    const u = this.find(user);
+    const options = Object.assign({}, params, {
+      username: u.name,
+      icon_url: u.profile.image_48,
+      as_user: false,
+      websocket: false
+    });
+
+    return this.sendMessage(channel, text, options);
+  }
+
   /**
    * Deletes a message
    * @param  {String} channel   the channel which the message was sent to

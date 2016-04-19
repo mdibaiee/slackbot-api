@@ -16,6 +16,7 @@ const DIRECTID = 'D0123123';
 const NAME = 'test';
 const USERNAME = 'user';
 const USERID = 'U123123';
+const USERICON = 'icon';
 const IMID = 'D123123';
 const NOIMUSERID = 'U123124';
 const NOIMUSERNAME = 'user-no-im';
@@ -40,7 +41,10 @@ describe('Bot', function test() {
       channels: [], bots: [],
       users: [{
         name: USERNAME,
-        id: USERID
+        id: USERID,
+        profile: {
+          image_48: USERICON
+        }
       }, {
         name: NOIMUSERNAME,
         id: NOIMUSERID
@@ -472,6 +476,21 @@ describe('Bot', function test() {
           attachments: [{ text: 'folan' }]
         });
       });
+    });
+  });
+
+  describe('sendAsUser', () => {
+    it('should set icon_url_48 and name of user', done => {
+      app.get('/chat.postMessage', request => {
+        request.query.icon_url.should.equal(USERICON);
+        request.query.username.should.equal(USERNAME);
+        request.query.channel.should.equal(DIRECTID);
+        request.query.text.should.equal('text');
+
+        done();
+      });
+
+      bot.sendAsUser(USERNAME, DIRECTID, 'text');
     });
   });
 
