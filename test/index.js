@@ -79,6 +79,23 @@ describe('Bot', function test() {
         socket.send('{}');
       });
     });
+
+    it('should update user\'s object when `user_change` fires', done => {
+      bot.emit('user_change', {
+        user: {
+          id: NOIMUSERID,
+          profile: {
+            test: true
+          }
+        }
+      });
+
+      setImmediate(() => {
+        bot.users[1].profile.test.should.equal(true);
+
+        done();
+      });
+    });
   });
 
   describe('hear', () => {
