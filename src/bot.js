@@ -7,7 +7,7 @@ import _ from 'lodash';
 
 const API = 'https://slack.com/api/';
 const START_URI = 'https://slack.com/api/rtm.start';
-const PING_INTERVAL = 5000;
+const PING_INTERVAL = 1000;
 
 let id = 0;
 
