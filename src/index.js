@@ -1,1 +1,1 @@
-module.exports = require('./bot');
+module.exports = require('./bot').default;
