@@ -13,7 +13,7 @@ describe('command', () => {
   });
 
   describe('group', () => {
-    it('should replace () with un-matched groups', () => {
+    it('should replace () with passive groups', () => {
       bot.command('(hello|ok)', () => ({}));
 
       const [listener] = bot.listeners;
