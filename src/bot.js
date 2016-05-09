@@ -3,6 +3,7 @@ import EventEmitter from 'events';
 import WebSocket from 'ws';
 import unirest from 'unirest';
 import Attachments from './attachments';
+import command from './command';
 import _ from 'lodash';
 
 const API = 'https://slack.com/api/';
@@ -67,6 +68,8 @@ class Bot extends EventEmitter {
    */
   constructor(config, manual) {
     super();
+
+    command(this);
 
     this.config = config;
 
