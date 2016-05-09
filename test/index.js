@@ -4,6 +4,8 @@ import Bot, { messageMethods, fullExec } from '../src/bot';
 import sinon from 'sinon';
 import WebSocket from 'ws';
 import express from 'express';
+import methods from '../src/methods';
+import _ from 'lodash';
 
 chai.should();
 
@@ -991,6 +993,14 @@ describe('Bot', function test() {
         bot.inject('me_message', {
           ts: 'something'
         });
+      });
+    });
+  });
+
+  describe('methods', () => {
+    it('should define all the methods on bot instance', () => {
+      methods.forEach(method => {
+        _.get(bot.api, method).should.be.ok;
       });
     });
   });

@@ -5,6 +5,7 @@ import unirest from 'unirest';
 import Attachments from './attachments';
 import command from './command';
 import _ from 'lodash';
+import methods from './methods';
 
 const API = 'https://slack.com/api/';
 const START_URI = 'https://slack.com/api/rtm.start';
@@ -206,6 +207,11 @@ class Bot extends EventEmitter {
         this.call('ping', {}, true);
       }, this.pingInterval);
     });
+
+    this.api = {};
+    methods.forEach(method => {
+      _.set(this.api, method, this.call.bind(this, method));
+    });
   }
 
   /**
@@ -294,8 +300,7 @@ class Bot extends EventEmitter {
     }
 
     (Array.isArray(events) ? events : [events]).forEach(ev => {
-      const methods = messageMethods(this);
-      Object.assign(data, methods);
+      Object.assign(data, messageMethods(this));
 
       if (data.message) {
         data.message.channel = data.channel;
@@ -354,8 +359,7 @@ class Bot extends EventEmitter {
             return;
           }
 
-          const methods = messageMethods(this);
-          Object.assign(msg, methods);
+          Object.assign(msg, messageMethods(this));
 
           if (msg.message) {
             msg.message.channel = msg.channel;
