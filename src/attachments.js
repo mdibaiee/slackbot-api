@@ -68,6 +68,7 @@ export default class Attachments extends Array {
       author_name: name,
       author_link: link,
       author_icon: icon,
+      fallback: `Author: ${name}, ${link}, ${icon}`,
       ...props
     });
   }
@@ -76,6 +77,7 @@ export default class Attachments extends Array {
   title(title, link, props = {}) {
     return this.add({
       title, title_link: link,
+      fallback: `Title: ${title}, ${link}`,
       ...props
     });
   }

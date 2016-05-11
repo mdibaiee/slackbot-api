@@ -6,7 +6,11 @@ slackbot-api
 
 Simple, understandable Slack Bot API.
 
-#initialize
+[Documentation](https://mdibaiee.gitbooks.io/slackbot-api/content/).
+
+
+#Quick overview
+##initialize
 
 ```javascript
 import Bot from 'slackbot-api';
@@ -15,7 +19,7 @@ let bot = new Bot({
 });
 ```
 
-#hear
+##hear
 Listen on all incoming messages matching a pattern.
 
 ```javascript
@@ -26,7 +30,7 @@ bot.hear(/hi (.*)/, message => {
 })
 ```
 
-#listen
+##listen
 Listen on all incoming messages mentioning the bot (with or without @)
 
 ```javascript
@@ -35,7 +39,7 @@ bot.listen(/help/, message => {
 });
 ```
 
-#sendMessage
+##sendMessage
 ```javascript
 bot.sendMessage('general', 'Hello guys! wassup?');
 bot.sendMessage('general', 'Hello', {
@@ -44,7 +48,7 @@ bot.sendMessage('general', 'Hello', {
 });
 ```
 
-#deleteMessage
+##deleteMessage
 ```javascript
 let msg = await bot.sendMessage('general', 'Hello guys! wassup?');
 msg.delete();
@@ -52,7 +56,7 @@ msg.delete();
 bot.deleteMessage('general', msg.ts);
 ```
 
-#updateMessage
+##updateMessage
 ```javascript
 let msg = await bot.sendMessage('general', 'i can haz cakez');
 msg.update('Yarrrrr!');
@@ -60,7 +64,7 @@ msg.update('Yarrrrr!');
 bot.updateMessage('general', msg.ts, 'Yarrrrr!');
 ```
 
-#react
+##react
 Add reactions to messages.
 ```javascript
 bot.listen(/rocket/, message => {
@@ -70,14 +74,14 @@ bot.listen(/rocket/, message => {
 bot.react('general', msg.ts, 'rocket');
 ```
 
-#icon
+##icon
 Set bot's profile icon.
 
 ```javascript
 bot.icon('warning');
 ```
 
-#random
+##random
 Choose an argument randomly. Arguments may also be arrays.
 
 ```javascript
@@ -86,7 +90,7 @@ bot.listen(/hey/, message => {
 })
 ```
 
-#on
+##on
 Listen on events.
 
 ```javascript
@@ -95,7 +99,7 @@ bot.on('channel_joined', event => {
 });
 ```
 
-#message events
+##message events
 You can also listen on individual messages' events
 ```javascript
 bot.listen(/list/, message => {
@@ -111,7 +115,7 @@ bot.listen(/list/, message => {
 });
 ```
 
-#find
+##find
 Find a channel, user, IM, whatever by it's id or name.
 
 ```javascript
@@ -122,7 +126,7 @@ let byId = bot.find('U0123456');
 ```
 
 
-#Modifiers
+##Modifiers
 In order to create advanced plugins/tasks, you might need to modify *behaviour* of a function, in order
 to do that, bolt provides you _modifiers_.
 
