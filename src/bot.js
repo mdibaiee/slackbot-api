@@ -694,7 +694,10 @@ class Bot extends EventEmitter {
             .query({ token: this.config.token })
             .end(response => {
               /* istanbul ignore next */
-              if (response.statusType < 4 && response.body.ok) resolve(response.body);
+              if (response.statusType < 4 && response.body.ok) {
+                const msg = Object.assign({}, response.body, messageMethods(this));
+                resolve(msg);
+              }
               /* istanbul ignore next */
               else reject(response.body);
             });
