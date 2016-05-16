@@ -665,14 +665,15 @@ class Bot extends EventEmitter {
   @processable('call')
   async call(method, params = {}, websocket = false) {
     if (websocket) {
+      const reply = this.waitForReply(id);
+
       this.ws.send(JSON.stringify({
         id: id++,
         type: method,
         ...params
       }));
 
-      const reply = await this.waitForReply(id - 1);
-      return { ...params, ...reply };
+      return { ...params, ...(await reply) };
     }
 
     const api = this._api || API; // this.api is used in tests
