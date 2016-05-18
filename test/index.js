@@ -45,26 +45,26 @@ describe('Bot', function test() {
         name: USERNAME,
         id: USERID,
         profile: {
-          image_48: USERICON
-        }
+          image_48: USERICON,
+        },
       }, {
         name: NOIMUSERNAME,
-        id: NOIMUSERID
+        id: NOIMUSERID,
       }],
       ims: [{
         id: IMID,
-        user: USERID
+        user: USERID,
       }],
       groups: [{
         name: GROUP,
-        id: GROUPID
+        id: GROUPID,
       }],
       self: {
         name: NAME,
         profile: {
-          image_original: ''
-        }
-      }
+          image_original: '',
+        },
+      },
     });
 
     ws._events = {};
@@ -87,9 +87,9 @@ describe('Bot', function test() {
         user: {
           id: NOIMUSERID,
           profile: {
-            test: true
-          }
-        }
+            test: true,
+          },
+        },
       });
 
       setImmediate(() => {
@@ -114,7 +114,7 @@ describe('Bot', function test() {
       const listener = bot._events.message;
       listener({
         text: 'Testing@123',
-        channel: GROUPID
+        channel: GROUPID,
       });
     });
 
@@ -134,7 +134,7 @@ describe('Bot', function test() {
           socket.send(JSON.stringify({
             type: 'message',
             channel: GROUPID,
-            text: `< test > &`
+            text: `< test > &`,
           }));
         });
       });
@@ -155,7 +155,7 @@ describe('Bot', function test() {
           socket.send(JSON.stringify({
             type: 'message',
             channel: GROUPID,
-            text: `<@${USERID}>`
+            text: `<@${USERID}>`,
           }));
         });
       });
@@ -176,7 +176,7 @@ describe('Bot', function test() {
           socket.send(JSON.stringify({
             type: 'message',
             channel: GROUPID,
-            text: `<#${GROUPID}>`
+            text: `<#${GROUPID}>`,
           }));
         });
       });
@@ -197,7 +197,7 @@ describe('Bot', function test() {
           socket.send(JSON.stringify({
             type: 'message',
             channel: GROUPID,
-            text: `<http://test.com>`
+            text: `<http://test.com>`,
           }));
         });
       });
@@ -224,12 +224,12 @@ describe('Bot', function test() {
 
       listener({
         text: 'no',
-        channel: GROUPID
+        channel: GROUPID,
       });
 
       listener({
         text: 'yes',
-        channel: GROUPID
+        channel: GROUPID,
       });
 
       setImmediate(() => {
@@ -254,11 +254,11 @@ describe('Bot', function test() {
       const listener = bot._events.message;
       listener({
         text: 'hi',
-        channel: GROUPID
+        channel: GROUPID,
       });
       listener({
         text: `hi ${NAME}`,
-        channel: GROUPID
+        channel: GROUPID,
       });
     });
 
@@ -275,7 +275,7 @@ describe('Bot', function test() {
       const listener = bot._events.message;
       listener({
         text: 'hi',
-        channel: DIRECTID
+        channel: DIRECTID,
       });
     });
 
@@ -292,11 +292,11 @@ describe('Bot', function test() {
       const listener = bot._events.message;
       listener({
         text: 'ok',
-        channel: GROUPID
+        channel: GROUPID,
       });
       listener({
         text: NAME,
-        channel: GROUPID
+        channel: GROUPID,
       });
     });
   });
@@ -349,8 +349,8 @@ describe('Bot', function test() {
 
         response.json({
           channel: {
-            id: IMID
-          }
+            id: IMID,
+          },
         });
 
         done();
@@ -387,7 +387,7 @@ describe('Bot', function test() {
 
           const response = {
             reply_to: msg.id,
-            ok
+            ok,
           };
 
           ok = !ok;
@@ -418,7 +418,7 @@ describe('Bot', function test() {
           const msg = JSON.parse(message);
 
           const response = {
-            reply_to: msg.id
+            reply_to: msg.id,
           };
 
           socket.send(JSON.stringify(response));
@@ -475,7 +475,7 @@ describe('Bot', function test() {
 
       bot.on('open', () => {
         bot.sendMessage(GROUP, 'test', {
-          websocket: false
+          websocket: false,
         });
       });
     });
@@ -492,7 +492,7 @@ describe('Bot', function test() {
       bot.on('open', () => {
         bot.sendMessage(GROUP, 'test', {
           websocket: false,
-          attachments: [{ text: 'folan' }]
+          attachments: [{ text: 'folan' }],
         });
       });
     });
@@ -526,7 +526,7 @@ describe('Bot', function test() {
           const reply = {
             ok: true,
             reply_to: msg.id,
-            ts: timestamps[i++]
+            ts: timestamps[i++],
           };
 
           socket.send(JSON.stringify(reply));
@@ -542,7 +542,7 @@ describe('Bot', function test() {
             subtype: 'message_changed',
             ts: msg.ts,
             channel: msg.channel,
-            message: msg
+            message: msg,
           };
           socket.send(JSON.stringify(update));
         });
@@ -573,7 +573,7 @@ describe('Bot', function test() {
           const reply = {
             ok: true,
             reply_to: msg.id,
-            ts: timestamps[i++]
+            ts: timestamps[i++],
           };
 
           socket.send(JSON.stringify(reply));
@@ -588,7 +588,7 @@ describe('Bot', function test() {
             type: 'message',
             subtype: 'message_deleted',
             ts: msg.ts,
-            channel: msg.channel
+            channel: msg.channel,
           };
           socket.send(JSON.stringify(deleted));
         });
@@ -619,7 +619,7 @@ describe('Bot', function test() {
           const reply = {
             ok: true,
             reply_to: msg.id,
-            ts: timestamps[i++]
+            ts: timestamps[i++],
           };
 
           socket.send(JSON.stringify(reply));
@@ -634,8 +634,8 @@ describe('Bot', function test() {
             type: 'reaction_added',
             item: {
               ts: msg.timestamp,
-              channel: msg.channel
-            }
+              channel: msg.channel,
+            },
           };
           socket.send(JSON.stringify(reaction));
         });
@@ -667,7 +667,7 @@ describe('Bot', function test() {
           const reply = {
             ok: true,
             reply_to: msg.id,
-            ts: timestamps[i++]
+            ts: timestamps[i++],
           };
 
           socket.send(JSON.stringify(reply));
@@ -682,8 +682,8 @@ describe('Bot', function test() {
             type: 'reaction_removed',
             item: {
               ts: msg.timestamp,
-              channel: msg.channel
-            }
+              channel: msg.channel,
+            },
           };
           socket.send(JSON.stringify(reaction));
         });
@@ -703,7 +703,7 @@ describe('Bot', function test() {
         bot.call('reactions.remove', {
           timestamp: msg.ts,
           channel: msg.channel,
-          name: ':rocket:'
+          name: ':rocket:',
         });
       });
     });
@@ -793,7 +793,7 @@ describe('Bot', function test() {
 
       const msg = Object.assign({
         ts: '123123',
-        channel: GROUPID
+        channel: GROUPID,
       }, messageMethods(bot));
 
       msg.update('newtext');
@@ -809,7 +809,7 @@ describe('Bot', function test() {
 
       const msg = Object.assign({
         ts: '123123',
-        channel: GROUPID
+        channel: GROUPID,
       }, messageMethods(bot));
 
       msg.delete();
@@ -826,7 +826,7 @@ describe('Bot', function test() {
 
       const msg = Object.assign({
         ts: '123123',
-        channel: GROUPID
+        channel: GROUPID,
       }, messageMethods(bot));
 
       msg.react('thumbsup');
@@ -846,7 +846,7 @@ describe('Bot', function test() {
 
       bot.on('open', () => {
         const msg = Object.assign({
-          channel: GROUPID
+          channel: GROUPID,
         }, messageMethods(bot));
 
         msg.reply('hi');
@@ -887,7 +887,7 @@ describe('Bot', function test() {
     it('should send a ping message every `pingInterval`', done => {
       const interval = 5;
       bot = new Bot({
-        pingInterval: interval
+        pingInterval: interval,
       }, true);
 
       bot.connect('ws://127.0.0.1:9090');
@@ -951,7 +951,7 @@ describe('Bot', function test() {
           done();
         });
         bot.inject('message_deleted', {
-          ts: 'something'
+          ts: 'something',
         });
       });
 
@@ -967,7 +967,7 @@ describe('Bot', function test() {
           done();
         });
         bot.inject('message_changed', {
-          ts: 'something'
+          ts: 'something',
         });
       });
 
@@ -977,7 +977,7 @@ describe('Bot', function test() {
           done();
         });
         bot.inject('message', {
-          ts: 'something'
+          ts: 'something',
         });
       });
 
@@ -991,7 +991,7 @@ describe('Bot', function test() {
           done();
         });
         bot.inject('me_message', {
-          ts: 'something'
+          ts: 'something',
         });
       });
     });

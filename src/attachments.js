@@ -1,5 +1,5 @@
 const DEFAULTS = {
-  mrkdwn_in: ['text']
+  mrkdwn_in: ['text'],
 };
 
 export default class Attachments extends Array {
@@ -15,7 +15,7 @@ export default class Attachments extends Array {
     return this.add({
       text, color: 'good',
       fallback: `Good: ${text}`,
-      ...props
+      ...props,
     });
   }
 
@@ -31,7 +31,7 @@ export default class Attachments extends Array {
     return this.add({
       text, color: 'danger',
       fallback: `Danger: ${text}`,
-      ...props
+      ...props,
     });
   }
 
@@ -40,7 +40,7 @@ export default class Attachments extends Array {
     return this.add({
       text, color: 'warning',
       fallback: `Warning: ${text}`,
-      ...props
+      ...props,
     });
   }
 
@@ -49,7 +49,7 @@ export default class Attachments extends Array {
     return this.add({
       image_url: url,
       fallback: `Image: ${url}`,
-      ...props
+      ...props,
     });
   }
 
@@ -58,7 +58,7 @@ export default class Attachments extends Array {
     return this.add({
       thumb_url: url,
       fallback: `Thumbnial: ${url}`,
-      ...props
+      ...props,
     });
   }
 
@@ -69,7 +69,7 @@ export default class Attachments extends Array {
       author_link: link,
       author_icon: icon,
       fallback: `Author: ${name}, ${link}, ${icon}`,
-      ...props
+      ...props,
     });
   }
 
@@ -78,7 +78,7 @@ export default class Attachments extends Array {
     return this.add({
       title, title_link: link,
       fallback: `Title: ${title}, ${link}`,
-      ...props
+      ...props,
     });
   }
 
@@ -86,7 +86,7 @@ export default class Attachments extends Array {
   fields(list, props = {}) {
     return this.add({
       fields: list,
-      ...props
+      ...props,
     });
   }
 

@@ -18,7 +18,7 @@ export default {
     }
 
     const index = modifiers[name].push({
-      type: PREPROCESSOR, fn
+      type: PREPROCESSOR, fn,
     });
 
     return index - 1;
@@ -38,7 +38,7 @@ export default {
     }
 
     const index = modifiers[name].push({
-      type: POSTPROCESSOR, fn
+      type: POSTPROCESSOR, fn,
     });
 
     return index - 1;
@@ -69,7 +69,7 @@ export default {
     }
 
     const index = modifiers[name].push({
-      type: MIDDLEWARE, fn
+      type: MIDDLEWARE, fn,
     });
 
     return index - 1;
@@ -119,7 +119,7 @@ export default {
    */
   modifiers() {
     return modifiers;
-  }
+  },
 };
 
 /**

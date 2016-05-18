@@ -7,7 +7,7 @@ describe('Attachments', () => {
   describe('defaults', () => {
     it('should apply defaults correctly', done => {
       const attachments = new Attachments({
-        text: 'hi'
+        text: 'hi',
       });
 
       attachments.add();

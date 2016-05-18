@@ -93,5 +93,5 @@ export default [
   'users.info',
   'users.list',
   'users.setActive',
-  'users.setPresence'
+  'users.setPresence',
 ];

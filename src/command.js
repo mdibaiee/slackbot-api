@@ -1,5 +1,5 @@
 const map = {
-  _: '.*?'
+  _: '.*?',
 };
 
 export const types = {
@@ -8,7 +8,7 @@ export const types = {
   alphanumeric: '[A-Za-z0-9]',
   alphabet: '[A-Za-z]',
   word: '\\w',
-  char: '\\S'
+  char: '\\S',
 };
 
 const group = string => {

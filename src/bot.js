@@ -54,7 +54,7 @@ export function messageMethods(bot) {
       );
 
       bot.messageListeners.splice(index, 1);
-    }
+    },
   };
 }
 
@@ -79,7 +79,7 @@ class Bot extends EventEmitter {
     this.Attachments = Attachments;
 
     this.globals = {
-      websocket: true
+      websocket: true,
     };
 
     this.listeners = [];
@@ -224,7 +224,7 @@ class Bot extends EventEmitter {
   inject(events, data) {
     data = _.defaults(data, {
       user: 'U123456',
-      ts: '1355517523.000005'
+      ts: '1355517523.000005',
     });
 
     switch (events) {
@@ -232,7 +232,7 @@ class Bot extends EventEmitter {
         data = _.defaults(data, {
           type: 'message',
           channel: 'C123456',
-          text: 'Hello World'
+          text: 'Hello World',
         });
         break;
 
@@ -272,7 +272,7 @@ class Bot extends EventEmitter {
           subtype: events,
           channel: 'C123456',
           hidden: true,
-          deleted_ts: '1355517523.000005'
+          deleted_ts: '1355517523.000005',
         });
         events = [events, 'message'];
         break;
@@ -290,9 +290,9 @@ class Bot extends EventEmitter {
             ts: '1355517523.000002',
             edited: {
               user: 'U123456',
-              ts: '1355517523.000005'
-            }
-          }
+              ts: '1355517523.000005',
+            },
+          },
         });
         events = [events, 'message'];
         break;
@@ -311,6 +311,8 @@ class Bot extends EventEmitter {
 
       this.emit(ev, data);
     });
+
+    return data;
   }
 
   /**
@@ -501,7 +503,7 @@ class Bot extends EventEmitter {
 
     const msg = {
       channel: target,
-      text, ...options
+      text, ...options,
     };
 
     const method = msg.websocket ? 'message' : 'chat.postMessage';
@@ -529,7 +531,7 @@ class Bot extends EventEmitter {
       username: u.name,
       icon_url: u.profile.image_48,
       as_user: false,
-      websocket: false
+      websocket: false,
     });
 
     return this.sendMessage(channel, text, options);
@@ -548,7 +550,7 @@ class Bot extends EventEmitter {
     const target = this.find(channel);
 
     const msg = {
-      channel: target.id, ts: timestamp
+      channel: target.id, ts: timestamp,
     };
 
     return Modifiers.trigger('deleteMessage', { ...msg, ...params }).then(() =>
@@ -572,7 +574,7 @@ class Bot extends EventEmitter {
 
     const msg = {
       channel: target.id, ts: timestamp,
-      text, ...params
+      text, ...params,
     };
 
     return Modifiers.trigger('updateMessage', { ...msg }).then(() =>
@@ -646,7 +648,7 @@ class Bot extends EventEmitter {
 
     const msg = {
       channel: target.id,
-      timestamp, name: emoji, ...params
+      timestamp, name: emoji, ...params,
     };
 
     return Modifiers.trigger('react', { ...msg, ...params }).then(() =>
@@ -670,7 +672,7 @@ class Bot extends EventEmitter {
       this.ws.send(JSON.stringify({
         id: id++,
         type: method,
-        ...params
+        ...params,
       }));
 
       return { ...params, ...(await reply) };
