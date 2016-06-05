@@ -86,7 +86,8 @@ class Bot extends EventEmitter {
 
     this.messageListeners = [];
 
-    this.setMaxListeners(config.maxListeners || 20);
+    this.waitForReplyTimeout = config.waitForReplyTimeout || 5000;
+    this.setMaxListeners(config.maxListeners || 50);
 
     this.pingInterval = config.pingInterval || PING_INTERVAL;
 
@@ -715,7 +716,7 @@ class Bot extends EventEmitter {
   @processable('waitForReply')
   waitForReply(messageId) {
     return new Promise((resolve, reject) => {
-      this.on('raw_message', function listener(message) {
+      function listener(message) {
         if (message.reply_to === messageId) {
           this.removeListener('raw_message', listener);
 
@@ -725,7 +726,12 @@ class Bot extends EventEmitter {
 
           return reject(message);
         }
-      });
+      }
+      this.on('raw_message', listener);
+
+      setTimeout(() => {
+        this.removeListener('raw_message', listener);
+      }, this.waitForReplyTimeout);
     });
   }
 
