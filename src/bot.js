@@ -358,6 +358,7 @@ class Bot extends EventEmitter {
           const msg = JSON.parse(message);
 
           if (msg.type === 'error') {
+            console.error('connection closed:', msg);
             this.connect();
             return;
           }
