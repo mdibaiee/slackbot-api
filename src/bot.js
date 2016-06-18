@@ -10,6 +10,7 @@ import methods from './methods';
 const API = 'https://slack.com/api/';
 const START_URI = 'https://slack.com/api/rtm.start';
 const PING_INTERVAL = 1000;
+const RECONNECT_INTERVAL = 1000;
 
 let id = 0;
 
@@ -90,6 +91,7 @@ class Bot extends EventEmitter {
     this.setMaxListeners(config.maxListeners || 50);
 
     this.pingInterval = config.pingInterval || PING_INTERVAL;
+    this.reconnectInterval = config.reconnectInterval || RECONNECT_INTERVAL;
 
     /* istanbul ignore if */
     if (!manual) {
@@ -319,10 +321,11 @@ class Bot extends EventEmitter {
   /**
    * Creates a WebSocket connection to the slack API url
    * @param  {String} url slack bot's API url e.g. wss://xyz
+   * @param {Boolean} reconnect indicates a reconnection, not an initial connection
    * @return {Promise}    A promise which resolves upon `open`
    */
   @processable('connect')
-  async connect(url) {
+  async connect(url, reconnect) {
     if (!url) {
       // Send a request and fetch Real-time Messaging API's websocket server
       await (new Promise((resolve, reject) => {
@@ -331,7 +334,7 @@ class Bot extends EventEmitter {
         .end(response => {
           const data = response.body;
 
-          if (!data.url || response.error) {
+          if (!data || !data.url || response.error) {
             return reject(new Error('Error connecting to Slack.'));
           }
 
@@ -354,9 +357,23 @@ class Bot extends EventEmitter {
     this.ws = new WebSocket(url);
     const ws = this.ws;
 
+    ws.on('close', () => {
+      const intv = setInterval(() => {
+        if (ws.readyState === WebSocket.CONNECTING ||
+            ws.readyState === WebSocket.OPEN) {
+          clearInterval(intv);
+          return;
+        }
+
+        this.connect(null, true);
+      }, this.reconnectInterval);
+    });
+
     return new Promise(resolve => {
       ws.on('open', () => {
-        this.emit('open');
+        if (!reconnect) {
+          this.emit('open');
+        }
         resolve();
 
         ws.on('message', message => {
@@ -364,7 +381,6 @@ class Bot extends EventEmitter {
 
           if (msg.type === 'error') {
             console.error('connection closed:', msg);
-            this.connect();
             return;
           }
 
