@@ -346,6 +346,11 @@ class Bot extends EventEmitter {
       }));
     }
 
+    if (this.ws) {
+      this.ws.terminate();
+      delete this.ws;
+    }
+
     this.ws = new WebSocket(url);
     const ws = this.ws;
 
@@ -671,11 +676,15 @@ class Bot extends EventEmitter {
     if (websocket) {
       const reply = this.waitForReply(id);
 
-      this.ws.send(JSON.stringify({
-        id: id++,
-        type: method,
-        ...params,
-      }));
+      try {
+        this.ws.send(JSON.stringify({
+          id: id++,
+          type: method,
+          ...params,
+        }));
+      } catch (e) {
+        console.error('Websocket Send Error:', e);
+      }
 
       return { ...params, ...(await reply) };
     }
