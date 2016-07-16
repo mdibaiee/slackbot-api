@@ -10,7 +10,6 @@ import methods from './methods';
 const API = 'https://slack.com/api/';
 const START_URI = 'https://slack.com/api/rtm.start';
 const PING_INTERVAL = 1000;
-const RECONNECT_INTERVAL = 1000;
 
 let id = 0;
 
@@ -91,7 +90,8 @@ class Bot extends EventEmitter {
     this.setMaxListeners(config.maxListeners || 50);
 
     this.pingInterval = config.pingInterval || PING_INTERVAL;
-    this.reconnectInterval = config.reconnectInterval || RECONNECT_INTERVAL;
+
+    this.queue = [];
 
     /* istanbul ignore if */
     if (!manual) {
@@ -205,11 +205,14 @@ class Bot extends EventEmitter {
       }
     });
 
-    this.on('open', () => {
-      setInterval(() => {
+    function initPing() {
+      clearInterval(this.pingIntv);
+      this.pingIntv = setInterval(() => {
         this.call('ping', {}, true);
+        console.log('pinging', this.number);
       }, this.pingInterval);
-    });
+    }
+    this.on('open', initPing);
 
     this.api = {};
     methods.forEach(method => {
@@ -319,6 +322,22 @@ class Bot extends EventEmitter {
   }
 
   /**
+   * Tries to re-connect to server
+   */
+  @processable('reconnect')
+  reconnect() {
+    if (this.dead) return;
+
+    const { ws } = this;
+    if (ws.readyState === WebSocket.CONNECTING ||
+        ws.readyState === WebSocket.OPEN) {
+      return;
+    }
+
+    this.connect(this.url, true);
+  }
+
+  /**
    * Creates a WebSocket connection to the slack API url
    * @param  {String} url slack bot's API url e.g. wss://xyz
    * @param {Boolean} reconnect indicates a reconnection, not an initial connection
@@ -326,6 +345,8 @@ class Bot extends EventEmitter {
    */
   @processable('connect')
   async connect(url, reconnect) {
+    if (this.dead) return;
+    this.url = url;
     if (!url) {
       // Send a request and fetch Real-time Messaging API's websocket server
       await (new Promise((resolve, reject) => {
@@ -358,29 +379,27 @@ class Bot extends EventEmitter {
     const ws = this.ws;
 
     ws.on('close', () => {
-      const intv = setInterval(() => {
-        if (ws.readyState === WebSocket.CONNECTING ||
-            ws.readyState === WebSocket.OPEN) {
-          clearInterval(intv);
-          return;
-        }
-
-        this.connect(null, true);
-      }, this.reconnectInterval);
+      this.reconnect();
     });
 
     return new Promise(resolve => {
       ws.on('open', () => {
-        if (!reconnect) {
+        this.queue.forEach(this.call);
+        this.queue = [];
+
+        if (reconnect) {
+          this.emit('reconnect');
+        } else {
           this.emit('open');
         }
+
         resolve();
 
         ws.on('message', message => {
           const msg = JSON.parse(message);
 
           if (msg.type === 'error') {
-            console.error('connection closed:', msg);
+            console.error('Error Message Received:', msg);
             return;
           }
 
@@ -689,7 +708,15 @@ class Bot extends EventEmitter {
    */
   @processable('call')
   async call(method, params = {}, websocket = false) {
+    if (this.dead) return;
     if (websocket) {
+      if (this.ws.readyState !== WebSocket.OPEN) {
+        this.queue.push({ method, params, websocket });
+        this.reconnect();
+
+        return;
+      }
+
       const reply = this.waitForReply(id);
 
       try {
@@ -699,7 +726,8 @@ class Bot extends EventEmitter {
           ...params,
         }));
       } catch (e) {
-        console.error('Websocket Send Error:', e);
+        console.error(this.ws.readyState, 'Websocket Send Error:', e);
+        this.reconnect();
       }
 
       return { ...params, ...(await reply) };
@@ -781,7 +809,9 @@ class Bot extends EventEmitter {
    * Stops the HTTP and WebSocket server and cleans up stuff
    */
   destroy() {
-    if (this.ws && this.ws.stop) this.ws.stop();
+    if (this.ws && this.ws.stop) this.ws.terminate();
+    clearInterval(this.pingIntv);
+    this.dead = true;
   }
 }
 

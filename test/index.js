@@ -29,8 +29,16 @@ describe('Bot', function test() {
   let ws;
   let app;
   let server;
+  let n = 0;
+
+  afterEach(() => {
+    if (bot) bot.destroy();
+    if (server) server.close();
+    if (ws) ws.close();
+  });
 
   beforeEach(() => {
+    if (bot) bot.destroy();
     if (server) server.close();
     if (ws) ws.close();
 
@@ -39,6 +47,8 @@ describe('Bot', function test() {
     server = app.listen(9091);
 
     bot = new Bot({}, true);
+    bot.number = n++;
+
     Object.assign(bot, {
       channels: [], bots: [],
       users: [{
@@ -886,31 +896,33 @@ describe('Bot', function test() {
   describe('ping', () => {
     it('should send a ping message every `pingInterval`', done => {
       const interval = 5;
-      bot = new Bot({
-        pingInterval: interval,
-      }, true);
 
-      bot.connect('ws://127.0.0.1:9090');
-      bot._api = 'http://127.0.0.1:9091/';
+      bot.pingInterval = interval;
 
       let messageCounter = 0;
       let intervalCounter = 0;
 
       ws.on('connection', socket => {
         socket.on('message', message => {
-          messageCounter++;
-
           const msg = JSON.parse(message);
           msg.type.should.equal('ping');
 
-          intervalCounter.should.equal(messageCounter);
-          if (intervalCounter === 2) done();
+          messageCounter++;
+
+          if (messageCounter == 2) {
+            intervalCounter.should.equal(messageCounter);
+            done();
+          }
         });
       });
 
       bot.on('open', () => {
         setInterval(() => intervalCounter++, interval);
       });
+    });
+
+    after(() => {
+      bot.destroy();
     });
   });
 
