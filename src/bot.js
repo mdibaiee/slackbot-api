@@ -399,7 +399,13 @@ class Bot extends EventEmitter {
         resolve();
 
         ws.on('message', message => {
-          const msg = JSON.parse(message);
+          let msg;
+          try {
+            msg = JSON.parse(message);
+          } catch (e) {
+            console.error(`Error parsing received message`, message);
+            return;
+          }
 
           if (msg.type === 'error') {
             console.error('Error Message Received:', msg);
