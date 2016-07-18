@@ -209,7 +209,6 @@ class Bot extends EventEmitter {
       clearInterval(this.pingIntv);
       this.pingIntv = setInterval(() => {
         this.call('ping', {}, true);
-        console.log('pinging', this.number);
       }, this.pingInterval);
     }
     this.on('open', initPing);
@@ -345,6 +344,8 @@ class Bot extends EventEmitter {
    */
   @processable('connect')
   async connect(url, reconnect) {
+    console.log(`[slackbot-api] connecting...`);
+
     if (this.dead) return;
     this.url = url;
     if (!url) {
@@ -379,11 +380,13 @@ class Bot extends EventEmitter {
     const ws = this.ws;
 
     ws.on('close', () => {
+      console.log(`[slackbot-api] websocket closed`);
       this.reconnect();
     });
 
     return new Promise(resolve => {
       ws.on('open', () => {
+        console.log(`[slackbot-api] websocket opened`);
         this.queue.forEach(this.call);
         this.queue = [];
 
@@ -709,6 +712,7 @@ class Bot extends EventEmitter {
   @processable('call')
   async call(method, params = {}, websocket = false) {
     if (this.dead) return;
+
     if (websocket) {
       if (this.ws.readyState !== WebSocket.OPEN) {
         this.queue.push({ method, params, websocket });
@@ -726,7 +730,7 @@ class Bot extends EventEmitter {
           ...params,
         }));
       } catch (e) {
-        console.error(this.ws.readyState, 'Websocket Send Error:', e);
+        console.error('[slackbot-api]', this.ws.readyState, 'websocket send error:', e);
         this.reconnect();
       }
 
